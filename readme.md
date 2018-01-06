@@ -1,19 +1,19 @@
-== 135tk ==
+# 135tk
 
 This repo is a set of tools used to read and edit the files used by the Touhou games using the th135 engine: Hopeless Masquerade, Urban Legend in Limbo and Antinomy of Common Flowers.
 Some of them are directly copy-pasted from Riatre's 135tk, some of them are upgraded versions, some of them are rewritten, and some of them are totally new. Most of them are written in c/cpp and compile on MinGW-w64 with either gcc *.c, g++ *.cpp or make. Some of them will require aditional libraries (I can think of zlib, libpng and jansson). Some of them will also compile on Linux with the same commands.
 
-== th145arc ==
+## th145arc
 A tool to extract and repack the pat files from Touhou 14.5. You will need the lib miracl to compile it: https://github.com/miracl/MIRACL (I will set up a git submodule someday to make compilation easier). Compile it with ./cc.sh (why did I use --enable-stdcall-fixup for something compiled with g++ ??)
 To extract files, run ./th145arc /x th145.pak. To repack them, run ./th145arc /p th145.pak.
 The /x and /p switches may be interpreted as paths on MinGW/cygwin, but the unix-style -x and -p also work.
 Archives created with /p will only be usable by the English patch.
 
-== th155arc ==
+## th155arc
 Like th145arc, but for th155. I even forgot to change "th145" to "th155" in some places, just ignore them.
 The /p option works like the th145 one, but there is currently no English patch able to read the files created with it.
 
-== read_pat ==
+# read_pat
 read_pat can be used to inspect and edit pat files. Compile it with gcc *.c -ljansson. run it with ./read_pat pat_file.pat [json_file.json].
 It outputs the PAT datas in 2 different formats:
 - A plaintext format on the standard output
