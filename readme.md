@@ -23,3 +23,9 @@ Most of the time, if you want to edit a pat file, you will run it in 2 steps:
 - First, you run it with a path to a nonexistent JSON file. read_pat will create this file and fill it with the content of the pat file.
 - Then, you run it again with the same parameters. read_pat will take the values from the JSON file and write them all to the pat file.
 You can also run it with a partial JSON file. For example, if the JSON file you give it contains only `{ "part1": { "version": 10 } }`, read_pat will replace the version number in the pat file, and it will fill the JSON file with all the other fields from the pat file.
+
+## TFBMTool-alt
+A C rewrite of Riatre's TFBMTool, with support for 8-bits images with palette. But this one doesn't support repacking yet.
+Since it doesn't support repacking, it doesn't need a read/write switch for now. Also, it always overwrites the TFBM file in place.
+Usage: `./TFBMTool tfbm_file.[bmp|png] [palette_XXX.bmp]
+The palette is optional for 24-bpp and 32-bpp TFBM files. It is mandatory for 8-bpp TFBM files. And actually, due to a bug, if you try to convert a 8-bpp TFBM file without providing a valid palette, the TFBM file's content will be erased.
