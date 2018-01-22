@@ -28,6 +28,9 @@ typedef struct
   unsigned int line_h;
 } State;
 
+// Disable packing 4 characters per pixels.
+//#define DISABLE_PACKING
+
 int put_char(HDC hdc, HBITMAP bmp, WCHAR c, BYTE **rows, State* state)
 {
   RECT rect;
@@ -68,10 +71,14 @@ int put_char(HDC hdc, HBITMAP bmp, WCHAR c, BYTE **rows, State* state)
       int y1 = 255 - y;
       int x2 = (state->x + x) * state->nb_channels + state->channel;
       int y2 = state->y + y;
+#ifndef DISABLE_PACKING
+      rows[y2][x2] = data[y1 * 4 * 256 + x1];
+#else
       rows[y2][x2+0] = data[y1 * 4 * 256 + x1 + 0];
       rows[y2][x2+1] = data[y1 * 4 * 256 + x1 + 1];
       rows[y2][x2+2] = data[y1 * 4 * 256 + x1 + 2];
       rows[y2][x2+3] = data[y1 * 4 * 256 + x1 + 3];
+#endif
     }
 
   free(data);
@@ -112,7 +119,7 @@ int main(int ac, const char** av)
   state.line_h = 0;
   BYTE *data = malloc(state.w * state.h * state.nb_channels);
   BYTE** rows = malloc(state.h * sizeof(BYTE*));
-  memset(data, 0xFF, state.w * state.h * state.nb_channels);
+  memset(data, 0, state.w * state.h * state.nb_channels);
   unsigned int i;
   for (i = 0; i < state.h; i++)
     rows[i] = data + i * state.w * state.nb_channels;
@@ -148,7 +155,11 @@ int main(int ac, const char** av)
 	  continue;
 	}
 
+#ifndef DISABLE_PACKING
+      state.channel++;
+#else
       state.channel += 4;
+#endif
       if (state.channel == state.nb_channels) {
 	state.x += state.char_w;
 	state.char_w = 0;
