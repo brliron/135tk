@@ -196,7 +196,8 @@ int main(int ac, const char** av)
     fwrite(rows[line], state.w * state.nb_channels, 1, fout);
   fclose(fout);
 
-  // At the end
+  free(rows);
+  free(data);
   if (ac >= 4)
     RemoveFontResourceEx(av[3], FR_PRIVATE, 0);
 
