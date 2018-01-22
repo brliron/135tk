@@ -31,7 +31,7 @@ typedef struct
 // Disable packing 4 characters per pixels.
 //#define DISABLE_PACKING
 
-int put_char(HDC hdc, HBITMAP bmp, WCHAR c, BYTE **rows, State* state)
+int put_char(HDC hdc, HBITMAP bmp, WCHAR c, BYTE **rows, State* state, CharDetail* charDetail)
 {
   RECT rect;
   rect.left   = 0;
@@ -81,6 +81,12 @@ int put_char(HDC hdc, HBITMAP bmp, WCHAR c, BYTE **rows, State* state)
 #endif
     }
 
+  charDetail->x        = state->x;
+  charDetail->y        = state->y;
+  charDetail->width    = rect.right;
+  charDetail->height   = rect.bottom;
+  charDetail->y_offset = 0;
+  charDetail->channel  = state->channel;
   free(data);
   return 1;
 }
@@ -99,7 +105,7 @@ int main(int ac, const char** av)
 	printf("Warning: 0 fonts were added from %s\n", av[3]);
     }
 
-  HFONT font = CreateFontA(20, 0, 0, 0, FW_NORMAL, FALSE, FALSE, FALSE,
+  HFONT font = CreateFontA(32, 0, 0, 0, FW_NORMAL, FALSE, FALSE, FALSE,
 			   ANSI_CHARSET, OUT_DEFAULT_PRECIS, CLIP_DEFAULT_PRECIS, ANTIALIASED_QUALITY,
 			   DEFAULT_PITCH | FF_DONTCARE, av[2]);
   if (font == NULL)
@@ -123,6 +129,7 @@ int main(int ac, const char** av)
   unsigned int i;
   for (i = 0; i < state.h; i++)
     rows[i] = data + i * state.w * state.nb_channels;
+  CharDetail* charDetails = malloc(65536 * sizeof(CharDetail));
 
   HDC hScreen = GetDC(NULL);
   HDC hdc = CreateCompatibleDC(hScreen);
@@ -135,7 +142,7 @@ int main(int ac, const char** av)
   uint16_t c;
   for (c = L'!'; c != /*0*/127; c++)
     {
-      if (put_char(hdc, hBmp, c, rows, &state) == 0)
+      if (put_char(hdc, hBmp, c, rows, &state, &charDetails[c]) == 0)
 	{
 	  // TODO: clear (x;y) -> (x+char_w;y+line_h)
 	  if (state.y + state.line_h > state.h)
@@ -205,8 +212,17 @@ int main(int ac, const char** av)
   int line;
   for (line = state.h - 1; line >= 0; line--)
     fwrite(rows[line], state.w * state.nb_channels, 1, fout);
+  uint16_t unk = 0x0215; // I don't know what is that, so I take the bytes in spell_font.bmp for now.
+  uint16_t nb_chars = 127 -  L'!';
+  fwrite(&unk, 2, 1, fout);
+  fwrite(&nb_chars, 2, 1, fout);
+  for (c = L'!'; c != /*0*/127; c++)
+    fwrite(&c, 2, 1, fout);
+  for (c = L'!'; c != /*0*/127; c++)
+    fwrite(&charDetails[c], sizeof(CharDetail), 1, fout);
   fclose(fout);
 
+  free(charDetails);
   free(rows);
   free(data);
   if (ac >= 4)
