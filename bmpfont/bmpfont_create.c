@@ -173,7 +173,7 @@ int main(int ac, const char** av)
 
   info.biSize = sizeof(BITMAPINFOHEADER);
   info.biWidth = state.w;
-  info.biHeight = -state.h; // TODO: reverse the bitmap
+  info.biHeight = state.h;
   info.biPlanes = 1;
   info.biBitCount = 32;
   info.biCompression = BI_RGB;
@@ -191,7 +191,9 @@ int main(int ac, const char** av)
     }
   fwrite(&header, sizeof(header), 1, fout);
   fwrite(&info,   sizeof(info),   1, fout);
-  fwrite(data,    state.w * state.h * state.nb_channels, 1, fout);
+  int line;
+  for (line = state.h - 1; line >= 0; line--)
+    fwrite(rows[line], state.w * state.nb_channels, 1, fout);
   fclose(fout);
 
   // At the end
