@@ -30,6 +30,8 @@ typedef struct
 
 // Disable packing 4 characters per pixels.
 //#define DISABLE_PACKING
+// Biggest character used. Use 65535 for all supported characters, 127 for ASCII only.
+#define CHAR_MAX 65535
 
 int put_char(void* obj, WCHAR c, BYTE **dest, State* state, CharDetail* charDetail)
 {
@@ -118,12 +120,12 @@ int main(int ac, const char** av)
   CharDetail* charDetails = (CharDetail*)malloc(65536 * sizeof(CharDetail));
 
   uint16_t c;
-  for (c = L' '; c != /*0*/127; c++)
+  for (c = L' '; c < CHAR_MAX; c++)
     {
       if (put_char(obj, c, rows, &state, &charDetails[c]) == 0)
 	{
 	  // TODO: clear (x;y) -> (x+char_w;y+line_h)
-	  if (state.y + state.line_h > state.h)
+	  if (state.y + state.line_h + 256 > state.h)
 	    break; // TODO: expand the bitmap
 	  state.y += state.line_h;
 	  state.x = 0;
@@ -187,12 +189,12 @@ int main(int ac, const char** av)
   for (line = state.h - 1; line >= 0; line--)
     fwrite(rows[line], state.w * 4, 1, fout);
   uint16_t unk = 0x0215; // I don't know what is that, so I take the bytes in spell_font.bmp for now.
-  uint16_t nb_chars = 127 -  L' ';
+  uint16_t nb_chars = CHAR_MAX -  L' ';
   fwrite(&unk, 2, 1, fout);
   fwrite(&nb_chars, 2, 1, fout);
-  for (c = L' '; c != /*0*/127; c++)
+  for (c = L' '; c < CHAR_MAX; c++)
     fwrite(&c, 2, 1, fout);
-  for (c = L' '; c != /*0*/127; c++)
+  for (c = L' '; c < CHAR_MAX; c++)
     fwrite(&charDetails[c], sizeof(CharDetail), 1, fout);
   fclose(fout);
 
