@@ -3,6 +3,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include "bmpfont_create.h"
 
 #pragma pack(push, 1)
 typedef struct
@@ -23,7 +24,6 @@ typedef struct
   int channel;
   unsigned int w;
   unsigned int h;
-  int nb_channels;
   unsigned int char_w;
   unsigned int line_h;
 } State;
@@ -31,63 +31,55 @@ typedef struct
 // Disable packing 4 characters per pixels.
 //#define DISABLE_PACKING
 
-int put_char(HDC hdc, HBITMAP bmp, WCHAR c, BYTE **rows, State* state, CharDetail* charDetail)
+int put_char(void* obj, WCHAR c, BYTE **dest, State* state, CharDetail* charDetail)
 {
-  RECT rect;
-  rect.left   = 0;
-  rect.top    = 0;
-  rect.right  = 0;
-  rect.bottom = 0;
-  DrawTextW(hdc, &c, 1, &rect, DT_CALCRECT);
-  if (state->x + rect.right >= state->w)
-    return 0;
-  if (rect.right > (int)state->char_w)
-    state->char_w = rect.right;
-  if (rect.bottom > (int)state->line_h)
-    state->line_h = rect.bottom;
+  int w;
+  int h;
+  BYTE*  buffer = malloc(256 * 256 * 4);
+  BYTE** buffer_rows = malloc(256 * sizeof(BYTE*));
+  memset(buffer, 0, 256 * 256 * 4);
+  int i;
+  for (i = 0; i < 256; i++)
+    buffer_rows[i] = &buffer[256 * 4 * i];
 
-  FillRect(hdc, &rect, (HBRUSH)(COLOR_SCROLLBAR+1));
-  DrawTextW(hdc, &c, 1, &rect, 0);
+  graphics_put_char(obj, c, buffer_rows, &w, &h);
 
-  BITMAPINFO info = { 0 };
-  info.bmiHeader.biSize = sizeof(BITMAPINFOHEADER);
-  info.bmiHeader.biWidth = 256;
-  info.bmiHeader.biHeight = 256;
-  info.bmiHeader.biPlanes = 1;
-  info.bmiHeader.biBitCount = 32;
-  info.bmiHeader.biCompression = BI_RGB;
-  info.bmiHeader.biSizeImage = 0;
-  info.bmiHeader.biXPelsPerMeter = 0;
-  info.bmiHeader.biYPelsPerMeter = 0;
-  info.bmiHeader.biClrUsed = 0;
-  info.bmiHeader.biClrImportant = 0;
-  char *data = malloc(256 * 256 * 4);
-  GetDIBits(hdc, bmp, 0, 256, data, &info, DIB_RGB_COLORS);
+  if (state->x + w >= state->w)
+    {
+      free(buffer);
+      free(buffer_rows);
+      return 0;
+    }
+  if (w > (int)state->char_w)
+    state->char_w = w;
+  if (h > (int)state->line_h)
+    state->line_h = h;
+
   int x;
   int y;
-  for (x = 0; x < rect.right; x++)
-    for (y = 0; y < rect.bottom; y++) {
-      int x1 = x * 4;
-      int y1 = 255 - y;
-      int x2 = (state->x + x) * state->nb_channels + state->channel;
+  for (x = 0; x < w; x++)
+    for (y = 0; y < h; y++) {
+      int x2 = (state->x + x) * 4 + state->channel;
       int y2 = state->y + y;
 #ifndef DISABLE_PACKING
-      rows[y2][x2] = data[y1 * 4 * 256 + x1];
+      dest[y2][x2] = buffer_rows[y][x * 4];
 #else
-      rows[y2][x2+0] = data[y1 * 4 * 256 + x1 + 0];
-      rows[y2][x2+1] = data[y1 * 4 * 256 + x1 + 1];
-      rows[y2][x2+2] = data[y1 * 4 * 256 + x1 + 2];
-      rows[y2][x2+3] = data[y1 * 4 * 256 + x1 + 3];
+      dest[y2][x2 + 0] = buffer_rows[y][x * 4 + 0];
+      dest[y2][x2 + 1] = buffer_rows[y][x * 4 + 1];
+      dest[y2][x2 + 2] = buffer_rows[y][x * 4 + 2];
+      dest[y2][x2 + 3] = buffer_rows[y][x * 4 + 3];
 #endif
     }
 
   charDetail->x        = state->x;
   charDetail->y        = state->y;
-  charDetail->width    = rect.right;
-  charDetail->height   = rect.bottom;
+  charDetail->width    = w;
+  charDetail->height   = h;
   charDetail->y_offset = 0;
   charDetail->channel  = state->channel;
-  free(data);
+
+  free(buffer_rows);
+  free(buffer);
   return 1;
 }
 
@@ -105,14 +97,9 @@ int main(int ac, const char** av)
 	printf("Warning: 0 fonts were added from %s\n", av[3]);
     }
 
-  HFONT font = CreateFontA(32, 0, 0, 0, FW_NORMAL, FALSE, FALSE, FALSE,
-			   ANSI_CHARSET, OUT_DEFAULT_PRECIS, CLIP_DEFAULT_PRECIS, ANTIALIASED_QUALITY,
-			   DEFAULT_PITCH | FF_DONTCARE, av[2]);
-  if (font == NULL)
-    {
-      printf("Could not open font %s\n", av[2]);
-      return 1;
-    }
+  void *obj = graphics_init(av[2]);
+  if (!obj)
+    return 1;
 
   State state;
   state.x = 0;
@@ -120,29 +107,20 @@ int main(int ac, const char** av)
   state.channel = 0;
   state.w = 2048;
   state.h = 1024;
-  state.nb_channels = 4;
   state.char_w = 0;
   state.line_h = 0;
-  BYTE *data = malloc(state.w * state.h * state.nb_channels);
+  BYTE *data = malloc(state.w * state.h * 4);
   BYTE** rows = malloc(state.h * sizeof(BYTE*));
-  memset(data, 0, state.w * state.h * state.nb_channels);
+  memset(data, 0, state.w * state.h * 4);
   unsigned int i;
   for (i = 0; i < state.h; i++)
-    rows[i] = data + i * state.w * state.nb_channels;
+    rows[i] = data + i * state.w * 4;
   CharDetail* charDetails = malloc(65536 * sizeof(CharDetail));
 
-  HDC hScreen = GetDC(NULL);
-  HDC hdc = CreateCompatibleDC(hScreen);
-  HBITMAP hBmp = CreateCompatibleBitmap(hScreen, 256, 256);
-  HFONT hOrigFont = SelectObject(hdc, font);
-  HBITMAP hOrigBmp = SelectObject(hdc, hBmp);
-  SetTextColor(hdc, RGB(255, 255, 255));
-  SetBkColor(hdc, RGB(0, 0, 0));
-
   uint16_t c;
-  for (c = L'!'; c != /*0*/127; c++)
+  for (c = L' '; c != /*0*/127; c++)
     {
-      if (put_char(hdc, hBmp, c, rows, &state, &charDetails[c]) == 0)
+      if (put_char(obj, c, rows, &state, &charDetails[c]) == 0)
 	{
 	  // TODO: clear (x;y) -> (x+char_w;y+line_h)
 	  if (state.y + state.line_h > state.h)
@@ -167,24 +145,19 @@ int main(int ac, const char** av)
 #else
       state.channel += 4;
 #endif
-      if (state.channel == state.nb_channels) {
+      if (state.channel == 4) {
 	state.x += state.char_w;
 	state.char_w = 0;
 	state.channel = 0;
       }
     }
 
-  SelectObject(hdc, hOrigBmp);
-  SelectObject(hdc, hOrigFont);
-  DeleteObject(hBmp);
-  DeleteDC(hdc);
-  ReleaseDC(NULL, hScreen);
-  DeleteObject(font);
+  graphics_free(obj);
 
   BITMAPFILEHEADER header;
   BITMAPINFOHEADER info;
   header.bfType = 'B' | ('M' << 8);
-  header.bfSize = sizeof(BITMAPFILEHEADER) + sizeof(BITMAPINFOHEADER) + state.w * state.h * state.nb_channels;
+  header.bfSize = sizeof(BITMAPFILEHEADER) + sizeof(BITMAPINFOHEADER) + state.w * state.h * 4;
   header.bfReserved1 = 0;
   header.bfReserved2 = 0;
   header.bfOffBits = sizeof(BITMAPFILEHEADER) + sizeof(BITMAPINFOHEADER);
@@ -211,14 +184,14 @@ int main(int ac, const char** av)
   fwrite(&info,   sizeof(info),   1, fout);
   int line;
   for (line = state.h - 1; line >= 0; line--)
-    fwrite(rows[line], state.w * state.nb_channels, 1, fout);
+    fwrite(rows[line], state.w * 4, 1, fout);
   uint16_t unk = 0x0215; // I don't know what is that, so I take the bytes in spell_font.bmp for now.
-  uint16_t nb_chars = 127 -  L'!';
+  uint16_t nb_chars = 127 -  L' ';
   fwrite(&unk, 2, 1, fout);
   fwrite(&nb_chars, 2, 1, fout);
-  for (c = L'!'; c != /*0*/127; c++)
+  for (c = L' '; c != /*0*/127; c++)
     fwrite(&c, 2, 1, fout);
-  for (c = L'!'; c != /*0*/127; c++)
+  for (c = L' '; c != /*0*/127; c++)
     fwrite(&charDetails[c], sizeof(CharDetail), 1, fout);
   fclose(fout);
 
