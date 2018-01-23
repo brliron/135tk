@@ -152,6 +152,7 @@ int main(int ac, const char** av)
       }
     }
 
+  state.h = state.y + state.line_h;
   graphics_free(obj);
 
   BITMAPFILEHEADER header;
