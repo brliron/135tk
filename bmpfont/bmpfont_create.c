@@ -35,8 +35,8 @@ int put_char(void* obj, WCHAR c, BYTE **dest, State* state, CharDetail* charDeta
 {
   int w;
   int h;
-  BYTE*  buffer = malloc(256 * 256 * 4);
-  BYTE** buffer_rows = malloc(256 * sizeof(BYTE*));
+  BYTE*  buffer =      (BYTE*) malloc(256 * 256 * 4);
+  BYTE** buffer_rows = (BYTE**)malloc(256 * sizeof(BYTE*));
   memset(buffer, 0, 256 * 256 * 4);
   int i;
   for (i = 0; i < 256; i++)
@@ -109,13 +109,13 @@ int main(int ac, const char** av)
   state.h = 1024;
   state.char_w = 0;
   state.line_h = 0;
-  BYTE *data = malloc(state.w * state.h * 4);
-  BYTE** rows = malloc(state.h * sizeof(BYTE*));
+  BYTE*  data = (BYTE*) malloc(state.w * state.h * 4);
+  BYTE** rows = (BYTE**)malloc(state.h * sizeof(BYTE*));
   memset(data, 0, state.w * state.h * 4);
   unsigned int i;
   for (i = 0; i < state.h; i++)
     rows[i] = data + i * state.w * 4;
-  CharDetail* charDetails = malloc(65536 * sizeof(CharDetail));
+  CharDetail* charDetails = (CharDetail*)malloc(65536 * sizeof(CharDetail));
 
   uint16_t c;
   for (c = L' '; c != /*0*/127; c++)
