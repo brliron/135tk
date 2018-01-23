@@ -126,7 +126,13 @@ int main(int ac, const char** av)
 	{
 	  // TODO: clear (x;y) -> (x+char_w;y+line_h)
 	  if (state.y + state.line_h + 256 > state.h)
-	    break; // TODO: expand the bitmap
+	    {
+	      state.h += 1024;
+	      data = (BYTE*) realloc(data, state.w * state.h * 4);
+	      rows = (BYTE**)realloc(rows, state.h * sizeof(BYTE*));
+	      for (i = 0; i < state.h; i++)
+		rows[i] = data + i * state.w * 4;
+	    }
 	  state.y += state.line_h;
 	  state.x = 0;
 	  state.line_h = 0;
