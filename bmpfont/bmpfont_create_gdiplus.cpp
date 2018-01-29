@@ -87,6 +87,10 @@ void graphics_put_char(void* obj_, WCHAR c, BYTE** dest, int* w, int* h)
     path.GetBounds(&rect, NULL, &pen);
     *w = rect.GetRight();
     *h = rect.GetBottom();
+    if (*w < 0)
+      *w = 0;
+    if (*h < 0)
+      *h = 0;
   }
 
   BITMAPINFO info;
