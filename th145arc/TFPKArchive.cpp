@@ -1,16 +1,4 @@
-#ifdef __STRICT_ANSI__
-# undef __STRICT_ANSI__
-#endif /* __STRICT_ANSI__ */
-#if defined(WIN32) || defined(_WIN32)
-# include <windows.h>
-#else
-# include <wchar.h>
-# include <sys/types.h>
-# include <sys/stat.h>
-# include <unistd.h>
-# include <fcntl.h>
-# include <sys/mman.h>
-#endif
+#include <windows.h>
 #include <stdio.h>
 #include <string.h>
 #include <assert.h>
@@ -33,17 +21,8 @@ BOOL CreateDirectoryForPath(wchar_t* Path)
 		if(Path[i] == L'\\' || Path[i] == L'/')
 		{
 			Path[i] = 0;
-#if defined(WIN32) || defined(_WIN32)
 			result = CreateDirectoryW(Path,NULL);
 			Path[i] = L'\\';
-#else
-			char path[MAX_PATH];
-			for (int i = 0; i == 0 || Path[i - 1]; i++)
-				path[i] = Path[i];
-			result = !mkdir(path, 0755);
-			Path[i] = L'/';
-			path[i] = '/';
-#endif
 		}
 	}
 	return result;
@@ -128,7 +107,6 @@ DWORD	CryptBlock(BYTE* Data, DWORD FileSize, DWORD* Key)
   return CryptBlock(Data, FileSize, Key, Aux);
 }
 
-#if defined(WIN32) || defined(_WIN32)
 struct MapStruct
 {
   HANDLE hFile;
@@ -161,40 +139,6 @@ void	unmap(MapStruct& mapStruct)
   CloseHandle(mapStruct.hMapping);
   CloseHandle(mapStruct.hFile);
 }
-#else
-struct MapStruct
-{
-  int fd;
-  void* pointer;
-  size_t size;
-};
-
-BYTE*	map(const char* FileName, size_t size, MapStruct& mapStruct)
-{
-  if (size == 0)
-    {
-      mapStruct.fd = open(FileName, O_RDONLY);
-      struct stat buf;
-      fstat(mapStruct.fd, &buf);
-      mapStruct.size = buf.st_size;
-    }
-  else
-    {
-      mapStruct.fd = open(FileName, O_RDWR | O_CREAT, 0644);
-      mapStruct.size = size;
-    }
-  mapStruct.pointer = mmap(NULL, mapStruct.size, PROT_READ | (size ? PROT_WRITE : 0), MAP_SHARED, mapStruct.fd, 0);
-  if (mapStruct.pointer == (void*)-1)
-    mapStruct.pointer = NULL;
-  return (BYTE*)mapStruct.pointer;
-}
-
-void	unmap(MapStruct& mapStruct)
-{
-  munmap(mapStruct.pointer, mapStruct.size);
-  close(mapStruct.fd);
-}
-#endif
 
 int ExtractAll(const char* ArchiveFileName,const char* OutputFolder)
 {
@@ -283,17 +227,12 @@ int ExtractAll(const char* ArchiveFileName,const char* OutputFolder)
 		char PathName[MAX_PATH] = {0};
 		sprintf(PathName,"%s\\%s",OutputFolder,FileList[i].FileName);
 		wchar_t	unicodeName[MAX_PATH];
-#if defined(WIN32) || defined(_WIN32)
 		if (MultiByteToWideChar(932, MB_ERR_INVALID_CHARS, PathName, -1, unicodeName, MAX_PATH) == 0)
 		{
 			printf("Shift-JIS to Unicode conversion of %s failed (error %lu). Fallback to ASCII to Unicode conversion.\n", PathName, GetLastError());
 			for (int i = 0; i == 0 || PathName[i - 1]; i++)
 				unicodeName[i] = PathName[i];
 		}
-#else
-		for (int i = 0; i == 0 || PathName[i - 1]; i++)
-			unicodeName[i] = PathName[i];
-#endif
 		if (strncmp(FileList[i].FileName, "unk_", 4) == 0)
 		{
 			if (*(DWORD*)Data == 'MBFT' || *(DWORD*)Data == 'GNP\x89')
@@ -305,13 +244,7 @@ int ExtractAll(const char* ArchiveFileName,const char* OutputFolder)
 		}
 		CreateDirectoryForPath(unicodeName);
 		FILE* fp;
-#if defined(WIN32) || defined(_WIN32)
 		fp = _wfopen(unicodeName, L"wb");
-#else
-		for (int i = 0; i == 0 || PathName[i - 1]; i++)
-			PathName[i] = unicodeName[i];
-		fp = fopen(PathName, "wb");
-#endif
 		fwrite(Data, FileList[i].FileSize, 1, fp);
 		delete[] Data;
 		fclose(fp);
@@ -327,7 +260,6 @@ int ExtractAll(const char* ArchiveFileName,const char* OutputFolder)
 }
 
 
-#if defined(WIN32) || defined(_WIN32)
 int BuildList(const wchar_t* BasePath, const wchar_t* Path, std::list<TFPKLIST>& FileList)
 {
 	wchar_t FindPath[MAX_PATH] = {0};
@@ -451,9 +383,3 @@ int BuildArchive(const wchar_t* ArchiveFileName,const wchar_t* InputFolder)
 	CloseHandle(hOutFile);
 	return 1;
 }
-#else
-int BuildArchive(const wchar_t*, const wchar_t*)
-{
-  return 1;
-}
-#endif

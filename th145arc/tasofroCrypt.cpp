@@ -3,9 +3,7 @@ extern "C"
 	#include "miracl.h"
 }
 #include "tasofroCrypt.h"
-#if defined(WIN32) || defined(_WIN32)
-# include <windows.h>
-#endif
+#include <windows.h>
 #include <string.h>
 
 const unsigned char PATCHED_KEY_N[KEY_BYTESIZE] = {

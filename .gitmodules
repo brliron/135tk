@@ -1,3 +1,7 @@
 [submodule "Act-Nut-lib"]
 	path = Act-Nut-lib
 	url = https://github.com/thpatch/Act-Nut-lib
+[submodule "th145arc/MIRACL"]
+	path = th145arc/MIRACL
+	url = https://github.com/miracl/MIRACL
+	ignore = untracked

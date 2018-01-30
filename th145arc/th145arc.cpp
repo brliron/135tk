@@ -1,10 +1,8 @@
 // th135arc.cpp : 定义控制台应用程序的入口点。
 //
 
-#if defined(WIN32) || defined(_WIN32)
-# include <windows.h>
-# include <locale.h>
-#endif
+#include <windows.h>
+#include <locale.h>
 #include <stdio.h>
 #include <string.h>
 #include <wchar.h>
@@ -25,9 +23,7 @@ void printUsage(char* myname)
 
 int main(int argc, char* argv[])
 {
-#if defined(WIN32) || defined(_WIN32)
 	setlocale(LC_ALL,"");
-#endif
 	printf("Archiver for Touhou 14.5(ULiL)\n"
 	       "By brliron\n"
 	       "Based on the archiver for Touhou 13.5(HM) by Riatre\n"
@@ -65,7 +61,7 @@ int main(int argc, char* argv[])
 			{
 				WCHAR dir[strlen(argv[i]) + 1];
 				WCHAR OutputFileName[MAX_PATH] = {0};
-				for (int j = 0; j <= strlen(argv[i]); j++)
+				for (unsigned int j = 0; j <= strlen(argv[i]); j++)
 					dir[j] = argv[i][j];
 				wcscpy(OutputFileName, dir);
 				wcscat(OutputFileName, L".pak");

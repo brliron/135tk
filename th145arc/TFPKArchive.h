@@ -1,16 +1,6 @@
 #ifndef TFPKARCHIVE_H_
 # define TFPKARCHIVE_H_
-# if defined(WIN32) || defined(_WIN32)
-#  include <Windows.h>
-# else
-typedef	unsigned int	DWORD;
-typedef	unsigned char	BYTE;
-typedef	unsigned char	BOOL;
-#  include <linux/limits.h>
-#  define MAX_PATH	PATH_MAX
-#  define TRUE		1
-#  define FALSE		0
-# endif
+# include <Windows.h>
 
 #pragma pack(push)
 #pragma pack(1)
