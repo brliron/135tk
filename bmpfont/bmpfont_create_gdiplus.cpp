@@ -21,15 +21,16 @@ typedef struct
   BYTE*   bmpData;
 } GdiPlusGraphics;
 
-void* graphics_init(const char* font)
+void* graphics_init(int ac, char* const* av)
 {
+  (void)ac; (void)av; // Parameters support will be added later
   GdiPlusGraphics* obj = new GdiPlusGraphics;
   Gdiplus::GdiplusStartup(&obj->gdiplusToken, &obj->gdiplusStartupInput, NULL);
 
   obj->font = new Gdiplus::FontFamily(L"Arial");
   if (!obj->font->IsAvailable())
     {
-      printf("Could not open font %s\n", font);
+      printf("Could not open font %s\n", "Arial");
       delete obj->font;
       Gdiplus::GdiplusShutdown(obj->gdiplusToken);
       delete obj;

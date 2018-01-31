@@ -1,4 +1,6 @@
 gcc bmpfont_extract.c -Wall -Wextra -o bmpfont_extract.exe
-gcc bmpfont_create.c  -Wall -Wextra -o bmpfont_create.exe  -lgdi32
-cp bmpfont_extract.exe ../bin/
-cp bmpfont_create.exe  ../bin/
+gcc bmpfont_convert.c -Wall -Wextra -o bmpfont_convert.exe
+
+gcc bmpfont_create_gdi.c       -Wall -Wextra -shared -lgdi32           -o bmpfont_create_gdi.dll
+g++ bmpfont_create_gdiplus.cpp -Wall -Wextra -shared -lgdi32 -lgdiplus -o bmpfont_create_gdiplus.dll
+gcc bmpfont_create.c           -Wall -Wextra         -lgdi32           -o bmpfont_create.exe

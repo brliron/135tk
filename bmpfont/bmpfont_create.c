@@ -1,9 +1,9 @@
 #include <Windows.h>
+#include <getopt.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <jansson.h>
 #include "bmpfont_create.h"
 
 #pragma pack(push, 1)
@@ -44,15 +44,22 @@ typedef enum
     // (3;0) containing the 1st pixel of the 4st character,
     // (4;0) containing the 2st pixel of the 1st character,
     // etc. It is the format used by thcrap (to make conversion to packed RGBA easier).
-    PACKED_GRAYSCALE
+    PACKED_GRAYSCALE,
+
+    INVALID_FORMAT
   } OutputType;
-static OutputType output_type;
+static OutputType output_type = INVALID_FORMAT;
 
 // Biggest character used. Use 65535 for all supported characters, 127 for ASCII only.
 //#define BIGGEST_CHAR 127
 #define BIGGEST_CHAR 65535
 
-int put_char(void* obj, WCHAR c, BYTE **dest, State* state, CharDetail* charDetail)
+static void* (*graphics_init_func)(int ac, char* const* av)                             = NULL;
+static void  (*graphics_free_func)(void* obj)                                           = NULL;
+static void  (*graphics_put_char_func)(void* obj, WCHAR c, BYTE** dest, int* w, int* h) = NULL;
+static void  (*graphics_help_func)()                                                    = NULL;
+
+int put_char(void* obj, WCHAR c, BYTE** dest, State* state, CharDetail* charDetail)
 {
   int w;
   int h;
@@ -63,7 +70,7 @@ int put_char(void* obj, WCHAR c, BYTE **dest, State* state, CharDetail* charDeta
   for (i = 0; i < 256; i++)
     buffer_rows[i] = &buffer[256 * 4 * i];
 
-  graphics_put_char(obj, c, buffer_rows, &w, &h);
+  graphics_put_char_func(obj, c, buffer_rows, &w, &h);
   if (c == L' ')
     w += 8;
 
@@ -99,6 +106,8 @@ int put_char(void* obj, WCHAR c, BYTE **dest, State* state, CharDetail* charDeta
 	case PACKED_GRAYSCALE:
 	  dest[y2][x2] = buffer_rows[y][x * 4];
 	  break;
+	case INVALID_FORMAT:
+	  break;
 	}
     }
 
@@ -114,36 +123,174 @@ int put_char(void* obj, WCHAR c, BYTE **dest, State* state, CharDetail* charDeta
   return 1;
 }
 
-int main(int ac, const char** av)
+void usage(const char* exe)
 {
-  if (ac < 4)
+  printf("Usage: %s option...\n"
+	 "  --help            Display this help message.\n"
+	 "  --format format   unpacked_rgba, packed_rgba, unpacked_grayscale\n"
+         "                    or packed_grayscale.\n"
+	 "                    unpacked_rgba and unpacked_grayscale can be opened\n"
+	 "                    with an image editor.\n"
+	 "                    packed_rgba is the format used by the game.\n"
+	 "                    packed_grayscale is the format expected by thcrap.\n"
+	 "  --out output_file Output file name (required).\n"
+	 "  --png             Convert the output to PNG (not implemented).\n"
+	 "  --plugin plugin   Plugin to be used to render the texts (required).\n"
+	 "  --font-name font  Name of the font used to render the texts.\n"
+	 , exe);
+  if (graphics_help_func)
     {
-      printf("Usage: %s type out.bmp font_name [in.ttf]\n"
-	     "  type can be: unpacked_rgba packed_rgba unpacked_grayscale packed_grayscale\n"
-	     , av[0]);
+      printf("\nPlugin-specific options:\n");
+      graphics_help_func();
+    }
+  else if (!graphics_init_func)
+    printf("For plugin-specific options, use --plugin [plugin] --help\n");
+}
+
+int init_plugin(const char* fn)
+{
+  HMODULE hMod;
+
+  hMod = LoadLibrary(fn);
+  if (!hMod)
+    {
+      printf("Error: can't open plugin %s\n", fn);
       return 0;
     }
 
-  if (strcmp(av[1], "unpacked_rgba") == 0)
-    output_type = UNPACKED_RGBA;
-  else if (strcmp(av[1], "packed_rgba") == 0)
-    output_type = PACKED_RGBA;
-  else if (strcmp(av[1], "unpacked_grayscale") == 0)
-    output_type = UNPACKED_GRAYSCALE;
-  else if (strcmp(av[1], "packed_grayscale") == 0)
-    output_type = PACKED_GRAYSCALE;
-  else
+  graphics_init_func     = (void*(*)(int, char* const*))              GetProcAddress(hMod, "graphics_init");
+  graphics_free_func     = (void (*)(void*))                          GetProcAddress(hMod, "graphics_free");
+  graphics_help_func     = (void(*)())                                GetProcAddress(hMod, "graphics_help");
+  graphics_put_char_func = (void(*)(void*, WCHAR, BYTE**, int*, int*))GetProcAddress(hMod, "graphics_put_char");
+
+  if (!graphics_init_func || !graphics_free_func || !graphics_put_char_func)
     {
-      printf("Error: unknown type %s\n", av[1]);
-      return 1;
+      printf("Error: the %s plugin doesn's define all the functions needed by this program.\n", fn);
+      graphics_init_func     = NULL;
+      graphics_free_func     = NULL;
+      graphics_help_func     = NULL;
+      graphics_put_char_func = NULL;
+      FreeLibrary(hMod);
+      return 0;
     }
-  if (ac >= 5)
+  return 1;
+}
+
+enum {
+  ARG_HELP = 2,
+  ARG_FORMAT,
+  ARG_OUT,
+  ARG_PNG,
+  ARG_PLUGIN,
+  ARG_FONTFILE,
+};
+int options(int ac, char* const* av, char** out, int* png, char** font_file)
+{
+  struct option options[] = {
+    { "help",      no_argument,       NULL, ARG_HELP },
+    { "format",    required_argument, NULL, ARG_FORMAT },
+    { "out",       required_argument, NULL, ARG_OUT },
+    { "png",       no_argument,       NULL, ARG_PNG },
+    { "plugin",    required_argument, NULL, ARG_PLUGIN },
+    { "font-file", required_argument, NULL, ARG_FONTFILE },
+    { NULL,        0,                 NULL, 0 },
+  };
+  int help = 0;
+  *out = NULL;
+  *png = 0;
+  *font_file = NULL;
+
+  int idx;
+  while (1)
     {
-      if (AddFontResourceEx(av[4], FR_PRIVATE, 0) == 0)
-	printf("Warning: 0 fonts were added from %s\n", av[4]);
+      idx = getopt_long(ac, av, "-:", options, NULL);
+      switch (idx) {
+      case ARG_HELP:
+	help = 1;
+	break;
+
+      case ARG_FORMAT:
+	if (strcmp(optarg, "unpacked_rgba") == 0)
+	  output_type = UNPACKED_RGBA;
+	else if (strcmp(optarg, "packed_rgba") == 0)
+	  output_type = PACKED_RGBA;
+	else if (strcmp(optarg, "unpacked_grayscale") == 0)
+	  output_type = UNPACKED_GRAYSCALE;
+	else if (strcmp(optarg, "packed_grayscale") == 0)
+	  output_type = PACKED_GRAYSCALE;
+	else
+	  {
+	    printf("Error: unknown format %s\n", optarg);
+	    return 0;
+	  }
+	break;
+
+      case ARG_OUT:
+	*out = optarg;
+	break;
+
+      case ARG_PNG:
+	*png = 1;
+	break;
+
+      case ARG_FONTFILE:
+	*font_file = optarg;
+	break;
+
+      case ARG_PLUGIN:
+	if (!init_plugin(optarg))
+	  return 0;
+	break;
+
+      case '?':
+	break;
+
+      case ':':
+	printf("Missing argument for one of the options\n");
+	return 0;
+
+      case -1:
+	if (help)
+	  {
+	    usage(av[0]);
+	    return 0;
+	  }
+	if (output_type == INVALID_FORMAT)
+	  printf("--format is required\n\n");
+	if (!*out)
+	  printf("--out is required\n\n");
+	if (!graphics_init_func)
+	  printf("--plugin is required\n\n");
+	if (output_type == INVALID_FORMAT || !*out || !graphics_init_func)
+	  {
+	    usage(av[0]);
+	    return 0;
+	  }
+
+        optind = 1;
+	return 1;
+      }
+    }
+}
+
+int main(int ac, char* const* av)
+{
+  // OutputType outputType; // global
+  char* out_fn;
+  int png;
+  char* font_file;
+  (void)png; // not implemented
+
+  if (!options(ac, av, &out_fn, &png, &font_file))
+    return 0;
+
+  if (font_file)
+    {
+      if (AddFontResourceEx(font_file, FR_PRIVATE, 0) == 0)
+	printf("Warning: 0 fonts were added from %s\n", font_file);
     }
 
-  void *obj = graphics_init(av[3]);
+  void *obj = graphics_init_func(ac, av);
   if (!obj)
     return 1;
 
@@ -204,7 +351,7 @@ int main(int ac, const char** av)
     }
 
   state.h = state.y + state.line_h;
-  graphics_free(obj);
+  graphics_free_func(obj);
 
   if (output_type == PACKED_GRAYSCALE)
     state.w *= 4;
@@ -237,10 +384,10 @@ int main(int ac, const char** av)
   info.biClrUsed = 0;
   info.biClrImportant = 0;
 
-  FILE *fout = fopen(av[2], "wb");
+  FILE *fout = fopen(out_fn, "wb");
   if (!fout)
     {
-      perror(av[2]);
+      perror(out_fn);
       return 1;
     }
 
@@ -272,8 +419,8 @@ int main(int ac, const char** av)
   if (output_type == PACKED_GRAYSCALE)
     {
       // We'll store the metadatas in another file, because the output will probably be converted to PNG.
-      char *path_bin = (char*)malloc(strlen(av[2]) + 5);
-      strcpy(path_bin, av[2]);
+      char *path_bin = (char*)malloc(strlen(out_fn) + 5);
+      strcpy(path_bin, out_fn);
       strcat(path_bin, ".bin");
       fclose(fout);
       fout = fopen(path_bin, "wb");
@@ -316,8 +463,8 @@ int main(int ac, const char** av)
 	  json_decref(elem);
 	}
 
-      char *path_jdiff = (char*)malloc(strlen(av[2]) + 7);
-      strcpy(path_jdiff, av[2]);
+      char *path_jdiff = (char*)malloc(strlen(out_fn) + 7);
+      strcpy(path_jdiff, out_fn);
       strcat(path_jdiff, ".jdiff");
       json_dump_file(object, path_jdiff, JSON_INDENT(2));
       json_decref(object);
@@ -330,7 +477,7 @@ int main(int ac, const char** av)
   free(rows);
   free(data);
   if (ac >= 5)
-    RemoveFontResourceEx(av[4], FR_PRIVATE, 0);
+    RemoveFontResourceEx(font_file, FR_PRIVATE, 0);
 
   return 0;
 }
