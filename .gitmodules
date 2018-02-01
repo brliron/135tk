@@ -5,3 +5,7 @@
 	path = th145arc/MIRACL
 	url = https://github.com/miracl/MIRACL
 	ignore = untracked
+[submodule "th155arc/MIRACL"]
+	path = th155arc/MIRACL
+	url = https://github.com/miracl/MIRACL
+	ignore = untracked

@@ -15,10 +15,10 @@ void printUsage(char* myname)
 {
 	printf("Usage:\n"
 		"  %s </p|/x> <Target>\n"
-		"  eg. %s /x th145.pak\n"
-		"        will eXtract all files in th145.pak to th145\\.\n"
-		"      %s /p th145\n"
-		"        will Pack all files in th145\\ into th145.pak.\n",
+		"  eg. %s /x th155.pak\n"
+		"        will eXtract all files in th155.pak to th155\\.\n"
+		"      %s /p th155\n"
+		"        will Pack all files in th155\\ into th155.pak.\n",
 		myname, myname, myname);
 	return;
 }
@@ -28,7 +28,7 @@ int main(int argc, char* argv[])
 #if defined(WIN32) || defined(_WIN32)
 	setlocale(LC_ALL,"");
 #endif
-	printf("Archiver for Touhou 14.5(ULiL)\n"
+	printf("Archiver for Touhou 15.5(AoCF)\n"
 	       "By brliron\n"
 	       "Based on the archiver for Touhou 13.5(HM) by Riatre\n"
 	       "\n"
