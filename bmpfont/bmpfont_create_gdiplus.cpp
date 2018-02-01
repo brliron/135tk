@@ -1,4 +1,5 @@
 #include <Windows.h>
+#include <getopt.h>
 #include <Gdiplus.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -9,41 +10,62 @@
 ** GDI+ code adapted from https://www.codeproject.com/Articles/42529/Outline-Text
 */
 
-typedef struct
+class GdiPlusGraphics
 {
+private:
   Gdiplus::GdiplusStartupInput gdiplusStartupInput;
   ULONG_PTR                    gdiplusToken;
+
+public:
   Gdiplus::FontFamily*         font;
 
   HDC     hdc;
   HBITMAP hBmp;
   HGDIOBJ hOrigBmp;
   BYTE*   bmpData;
-} GdiPlusGraphics;
+
+  GdiPlusGraphics();
+  ~GdiPlusGraphics();
+};
+
+GdiPlusGraphics::GdiPlusGraphics()
+  : font(nullptr), hdc(nullptr), hBmp(nullptr), hOrigBmp(nullptr)
+{
+  Gdiplus::GdiplusStartup(&this->gdiplusToken, &this->gdiplusStartupInput, NULL);
+
+  HDC hScreen = GetDC(NULL);
+  this->hdc  = CreateCompatibleDC(hScreen);
+  this->hBmp = CreateCompatibleBitmap(hScreen, 256, 256);
+  ReleaseDC(NULL, hScreen);
+  this->hOrigBmp = SelectObject(this->hdc, this->hBmp);
+
+  this->bmpData = new BYTE[256 * 256 * 4];
+}
+
+GdiPlusGraphics::~GdiPlusGraphics()
+{
+  delete this->font;
+
+  SelectObject(this->hdc, this->hOrigBmp);
+  DeleteObject(this->hBmp);
+  DeleteDC(this->hdc);
+
+  delete[] this->bmpData;
+  Gdiplus::GdiplusShutdown(this->gdiplusToken);
+}
 
 void* graphics_init(int ac, char* const* av)
 {
   (void)ac; (void)av; // Parameters support will be added later
   GdiPlusGraphics* obj = new GdiPlusGraphics;
-  Gdiplus::GdiplusStartup(&obj->gdiplusToken, &obj->gdiplusStartupInput, NULL);
 
   obj->font = new Gdiplus::FontFamily(L"Arial");
   if (!obj->font->IsAvailable())
     {
       printf("Could not open font %s\n", "Arial");
-      delete obj->font;
-      Gdiplus::GdiplusShutdown(obj->gdiplusToken);
       delete obj;
       return NULL;
     }
-
-  HDC hScreen = GetDC(NULL);
-  obj->hdc  = CreateCompatibleDC(hScreen);
-  obj->hBmp = CreateCompatibleBitmap(hScreen, 256, 256);
-  ReleaseDC(NULL, hScreen);
-  obj->hOrigBmp = SelectObject(obj->hdc, obj->hBmp);
-
-  obj->bmpData = (BYTE*)malloc(256 * 256 * 4);
 
   return obj;
 }
@@ -51,15 +73,6 @@ void* graphics_init(int ac, char* const* av)
 void graphics_free(void* obj_)
 {
   GdiPlusGraphics* obj = (GdiPlusGraphics*)obj_;
-
-  SelectObject(obj->hdc, obj->hOrigBmp);
-  DeleteObject(obj->hBmp);
-  DeleteDC(obj->hdc);
-
-  delete obj->font;
-  Gdiplus::GdiplusShutdown(obj->gdiplusToken);
-
-  free(obj->bmpData);
   delete obj;
 }
 
