@@ -136,7 +136,7 @@ void usage(const char* exe)
 	 "  --out output_file Output file name (required).\n"
 	 "  --png             Convert the output to PNG (not implemented).\n"
 	 "  --plugin plugin   Plugin to be used to render the texts (required).\n"
-	 "  --font-name font  Name of the font used to render the texts.\n"
+	 "  --font-file file  Font file to load before looking for a font.\n"
 	 , exe);
   if (graphics_help_func)
     {

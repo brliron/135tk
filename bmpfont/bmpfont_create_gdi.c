@@ -68,7 +68,7 @@ int options(int ac, char* const* av, char** font_name, int* font_size, HDC hdc)
 	break;
 
       case ARG_FONTSIZE:
-	*font_size = 1;
+	*font_size = atoi(optarg);
 	break;
 
       case ARG_FG:
