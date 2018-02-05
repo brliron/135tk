@@ -12,6 +12,7 @@ mkdir -p bin
 cp Act-Nut-lib/libactnut.dll Act-Nut-lib/print-act-nut.exe bin
 cp bmpfont/bmpfont_extract.exe bmpfont/bmpfont_convert.exe bmpfont/bmpfont_create.exe bmpfont/bmpfont_create_gdi.dll bmpfont/bmpfont_create_gdiplus.dll bin
 cp nhtextool/nhtextool.exe bin
+cp orig_135tk/* bin
 cp TFBMTool-alt/TFBMTool-alt.exe bin
 cp th145arc/th145arc.exe th145arc/fileslist.txt bin
 
