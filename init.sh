@@ -7,10 +7,3 @@ cp */*/* .
 cp */*/*/* .
 bash linux
 cd ../..
-
-cd th155arc/MIRACL
-cp */* .
-cp */*/* .
-cp */*/*/* .
-bash linux
-cd ../..
