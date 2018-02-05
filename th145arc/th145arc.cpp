@@ -24,7 +24,7 @@ void printUsage(char* myname)
 int main(int argc, char* argv[])
 {
 	setlocale(LC_ALL,"");
-	printf("Archiver for Touhou 14.5(ULiL)\n"
+	printf("Archiver for Touhou 14.5(ULiL) and Touhou 15.5(AoCF)\n"
 	       "By brliron\n"
 	       "Based on the archiver for Touhou 13.5(HM) by Riatre\n"
 	       "\n"
