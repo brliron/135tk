@@ -2,4 +2,4 @@
 *.exe
 *.o
 *.a
-bin/fileslist.txt
+bin
