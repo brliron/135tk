@@ -20,7 +20,7 @@ Each member of every structure will be displayed on one line. embeeded structure
 The `--no-print-files` suppresses the normal output and keeps only the errors. It is used mostly for debugging the library.
 
 If you want to change the Act or Nut file, you will need to either edit [main.cpp](https://github.com/thpatch/Act-Nut-lib/blob/master/main.cpp) to add your modifications ([right after the file parsing](https://github.com/thpatch/Act-Nut-lib/blob/4b246aca9267ae1057b0f6bb0da0c00dc6775892/main.cpp#L58) is a good place), or link to `libactnut.dll` yourself. The easiest is to use [`Object::getChild()`](https://github.com/thpatch/Act-Nut-lib/blob/4b246aca9267ae1057b0f6bb0da0c00dc6775892/Object.hpp#L66) and the `operator=` overloads.  
-You have an example in [the thcrap source core](https://github.com/thpatch/thcrap/blob/7794aae8978ec07839dce29c21abc2b3a152207a/thcrap_tasofro/src/act-nut.cpp#L40). In this example, the `key` and `text` variables are pulled from [files like this](https://github.com/thpatch/thcrap-tsa/blob/master/script_latin/th155/data/script/talk/talk_balloon.nut.jdiff).
+You have an example in [the thcrap source code](https://github.com/thpatch/thcrap/blob/7794aae8978ec07839dce29c21abc2b3a152207a/thcrap_tasofro/src/act-nut.cpp#L40). In this example, the `key` and `text` variables are pulled from [files like this](https://github.com/thpatch/thcrap-tsa/blob/master/script_latin/th155/data/script/talk/talk_balloon.nut.jdiff).
 
 Look at [main.cpp](https://github.com/thpatch/Act-Nut-lib/blob/master/main.cpp) and the header files for more examples.
 
