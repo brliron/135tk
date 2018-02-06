@@ -20,3 +20,5 @@ cp th145arc/th145arc.exe th145arc/fileslist.txt bin
 # Copy dependencies
 DEP_DIR=/mingw32/bin
 cp $DEP_DIR/libgcc_s_dw2-1.dll $DEP_DIR/libjansson-4.dll $DEP_DIR/libpng16-16.dll $DEP_DIR/libstdc++-6.dll $DEP_DIR/libwinpthread-1.dll $DEP_DIR/zlib1.dll bin
+
+cp readme.md bin
