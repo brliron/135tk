@@ -87,26 +87,64 @@ typedef struct {
 
 int convert_TFBM(const char *tfbm, const char *tfpa, const char *out_png)
 {
-  TFBM_header header;
-  FILE *f = TFXX_open(tfbm, "TFBM", &header, sizeof(header));
-  char *data = TFXX_read(f, header.comp_size, header.padding_width * header.height);
-  if (!data) {
-    return 0;
-  }
-
   png_structp png_ptr;
   png_infop info_ptr;
 
   png_ptr = png_create_write_struct(PNG_LIBPNG_VER_STRING, NULL, NULL, NULL);
   info_ptr = png_create_info_struct(png_ptr);
-  if (setjmp(png_jmpbuf(png_ptr))) {
+  if (!png_ptr || !info_ptr || setjmp(png_jmpbuf(png_ptr))) {
     png_destroy_write_struct(&png_ptr, &info_ptr);
     return 0;
+  }
+
+  TFBM_header header;
+  char *data = NULL;
+  {
+    FILE *f = TFXX_open(tfbm, "TFBM", &header, sizeof(header));
+    data = TFXX_read(f, header.comp_size, header.padding_width * header.height);
+    if (!data) {
+      png_destroy_write_struct(&png_ptr, &info_ptr);
+      return 0;
+    }
+  }
+
+  png_color *palette = NULL;
+  png_byte *tRNS = NULL;
+  if (header.bpp == 8) {
+    if (!tfpa) {
+      printf("Error: no palette given for a 8-bits with palette TFBM image.\n");
+      png_destroy_write_struct(&png_ptr, &info_ptr);
+      free(data);
+      return 0;
+    }
+
+    uint32_t comp_size;
+    FILE *f = TFXX_open(tfpa, "TFPA", &comp_size, sizeof(comp_size));
+    char *plt_data = TFXX_read(f, comp_size, 256 * 2 + 256 * 4);
+    if (!plt_data) {
+      png_destroy_write_struct(&png_ptr, &info_ptr);
+      free(data);
+      return 0;
+    }
+
+    palette = png_malloc(png_ptr, 256 * sizeof(png_color));
+    tRNS    = png_malloc(png_ptr, 256);
+    for (int i = 0; i < 256; i++) {
+      palette[i].red   = plt_data[256 * 2 + i * 4 + 2];
+      palette[i].green = plt_data[256 * 2 + i * 4 + 1];
+      palette[i].blue  = plt_data[256 * 2 + i * 4 + 0];
+      tRNS[i]          = plt_data[256 * 2 + i * 4 + 3];
+    }
+
+    free(plt_data);
   }
 
   FILE *out = fopen(out_png, "wb");
   if (!out) {
     perror(out_png);
+    if (palette) png_free(png_ptr, palette);
+    if (tRNS) png_free(png_ptr, tRNS);
+    png_destroy_write_struct(&png_ptr, &info_ptr);
     free(data);
     return 0;
   }
@@ -125,39 +163,9 @@ int convert_TFBM(const char *tfbm, const char *tfpa, const char *out_png)
   png_set_IHDR(png_ptr, info_ptr, header.width, header.height, header.bpp, color_type,
 	       PNG_INTERLACE_NONE, PNG_COMPRESSION_TYPE_DEFAULT, PNG_FILTER_TYPE_DEFAULT);
 
-  png_color *palette = NULL;
-  png_byte *tRNS = NULL;
   if (header.bpp == 8) {
-    if (!tfpa) {
-      printf("Error: no palette given for a 8-bits with palette TFBM image.\n");
-      png_destroy_write_struct(&png_ptr, &info_ptr);
-      free(data);
-      fclose(out);
-      return 0;
-    }
-
-    uint32_t comp_size;
-    FILE *f = TFXX_open(tfpa, "TFPA", &comp_size, sizeof(comp_size));
-    char *plt_data = TFXX_read(f, comp_size, 256 * 2 + 256 * 4);
-    if (!plt_data) {
-      png_destroy_write_struct(&png_ptr, &info_ptr);
-      free(data);
-      fclose(out);
-      return 0;
-    }
-
-    palette = png_malloc(png_ptr, 256 * sizeof(png_color));
-    tRNS    = png_malloc(png_ptr, 256);
-    for (int i = 0; i < 256; i++) {
-      palette[i].red   = plt_data[256 * 2 + i * 4 + 2];
-      palette[i].green = plt_data[256 * 2 + i * 4 + 1];
-      palette[i].blue  = plt_data[256 * 2 + i * 4 + 0];
-      tRNS[i]          = plt_data[256 * 2 + i * 4 + 3];
-    }
     png_set_PLTE(png_ptr, info_ptr, palette, 256);
     png_set_tRNS(png_ptr, info_ptr, tRNS, 256, NULL);
-
-    free(plt_data);
   }
   else if (header.bpp == 24 || header.bpp == 32) {
     // BGR to RGB, or BGRA to RGBA
@@ -180,12 +188,8 @@ int convert_TFBM(const char *tfbm, const char *tfpa, const char *out_png)
   }
   png_write_end(png_ptr, NULL);
 
-  if (palette) {
-    png_free(png_ptr, palette);
-  }
-  if (tRNS) {
-    png_free(png_ptr, tRNS);
-  }
+  if (palette) png_free(png_ptr, palette);
+  if (tRNS) png_free(png_ptr, tRNS);
   png_destroy_write_struct(&png_ptr, &info_ptr);
   free(data);
   fclose(out);
