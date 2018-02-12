@@ -19,7 +19,7 @@ int convert_TFBM_to_PNG(LPCWSTR tfbm, LPCWSTR tfpa, LPCWSTR out_png)
   char *data = NULL;
   {
     FILE *f = TFXX_open_read(tfbm, "TFBM", &header, sizeof(header));
-    data = TFXX_read(f, header.comp_size, header.width * header.height * header.bpp / 8);
+    data = TFXX_read(f, header.comp_size, header.padding_width * header.height * header.bpp / 8);
     if (!data) {
       png_destroy_write_struct(&png_ptr, &info_ptr);
       return 0;
@@ -72,20 +72,14 @@ int convert_TFBM_to_PNG(LPCWSTR tfbm, LPCWSTR tfpa, LPCWSTR out_png)
   if (header.bpp == 8) {
     color_type = PNG_COLOR_TYPE_PALETTE;
   }
-  /*
-  ** I thought padding_width was the size of a line + its padding in bytes,
-  ** but no, it just seems to be a copy of width.
-  ** I don't know if 24bpp images are supposed to have a padding, so I'll just disable them
-  ** for now.
   else if (header.bpp == 24) {
     color_type = PNG_COLOR_TYPE_RGB;
   }
-  */
   else if (header.bpp == 32) {
     color_type = PNG_COLOR_TYPE_RGB_ALPHA;
   }
   else {
-    wfprintf("%s: unsupported bit depth: %d (only 8 and 32 are supported).\n", out_png, header.bpp);
+    fwprintf(stderr, L"%s: unsupported bit depth: %d (only 8, 24 and 32 are supported).\n", out_png, header.bpp);
     if (palette) png_free(png_ptr, palette);
     if (tRNS) png_free(png_ptr, tRNS);
     png_destroy_write_struct(&png_ptr, &info_ptr);
@@ -102,7 +96,7 @@ int convert_TFBM_to_PNG(LPCWSTR tfbm, LPCWSTR tfpa, LPCWSTR out_png)
   else if (header.bpp == 24 || header.bpp == 32) {
     // BGR to RGB, or BGRA to RGBA
     for (uint32_t i = 0; i < header.height; i++) {
-      char *line = &data[i * header.width * header.bpp / 8];
+      char *line = &data[i * header.padding_width * header.bpp / 8];
       for (uint32_t j = 0; j < header.width; j++) {
 	uint8_t *pixel = (uint8_t*)&line[j * header.bpp / 8];
 	uint8_t r = pixel[2];
@@ -116,7 +110,7 @@ int convert_TFBM_to_PNG(LPCWSTR tfbm, LPCWSTR tfpa, LPCWSTR out_png)
   png_write_info(png_ptr, info_ptr);
 
   for (uint32_t i = 0; i < header.height; i++) {
-    png_write_row(png_ptr, (png_bytep)(data + i * header.width * header.bpp / 8));
+    png_write_row(png_ptr, (png_bytep)(data + i * header.padding_width * header.bpp / 8));
   }
   png_write_end(png_ptr, NULL);
 
