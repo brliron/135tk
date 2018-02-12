@@ -18,7 +18,7 @@ int convert_TFBM_to_PNG(const char *tfbm, const char *tfpa, const char *out_png)
   TFBM_header header;
   char *data = NULL;
   {
-    FILE *f = TFXX_open(tfbm, "TFBM", &header, sizeof(header));
+    FILE *f = TFXX_open_read(tfbm, "TFBM", &header, sizeof(header));
     data = TFXX_read(f, header.comp_size, header.padding_width * header.height);
     if (!data) {
       png_destroy_write_struct(&png_ptr, &info_ptr);
@@ -37,7 +37,7 @@ int convert_TFBM_to_PNG(const char *tfbm, const char *tfpa, const char *out_png)
     }
 
     uint32_t comp_size;
-    FILE *f = TFXX_open(tfpa, "TFPA", &comp_size, sizeof(comp_size));
+    FILE *f = TFXX_open_read(tfpa, "TFPA", &comp_size, sizeof(comp_size));
     char *plt_data = TFXX_read(f, comp_size, 256 * 2 + 256 * 4);
     if (!plt_data) {
       png_destroy_write_struct(&png_ptr, &info_ptr);
