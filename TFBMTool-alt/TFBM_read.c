@@ -72,11 +72,25 @@ int convert_TFBM_to_PNG(LPCWSTR tfbm, LPCWSTR tfpa, LPCWSTR out_png)
   if (header.bpp == 8) {
     color_type = PNG_COLOR_TYPE_PALETTE;
   }
+  /*
+  ** I thought padding_width was the size of a line + its padding in bytes,
+  ** but no, it just seems to be a copy of width.
+  ** I don't know if 24bpp images are supposed to have a padding, so I'll just disable them
+  ** for now.
   else if (header.bpp == 24) {
     color_type = PNG_COLOR_TYPE_RGB;
   }
+  */
   else if (header.bpp == 32) {
     color_type = PNG_COLOR_TYPE_RGB_ALPHA;
+  }
+  else {
+    wfprintf("%s: unsupported bit depth: %d (only 8 and 32 are supported).\n", out_png, header.bpp);
+    if (palette) png_free(png_ptr, palette);
+    if (tRNS) png_free(png_ptr, tRNS);
+    png_destroy_write_struct(&png_ptr, &info_ptr);
+    free(data);
+    return 0;
   }
   png_set_IHDR(png_ptr, info_ptr, header.width, header.height, 8, color_type,
 	       PNG_INTERLACE_NONE, PNG_COMPRESSION_TYPE_DEFAULT, PNG_FILTER_TYPE_DEFAULT);
