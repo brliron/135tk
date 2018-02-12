@@ -43,7 +43,7 @@ FILE *TFXX_open_read(LPCWSTR fn, const char *in_magic, void *header, size_t head
   fread(magic, 4, 1, f);
   fread(&version, 1, 1, f);
   if (memcmp(in_magic, magic, 4) != 0 || version != 0) {
-    wprintf(L"Error: %s: wrong magic or version\n", fn);
+    fwprintf(stderr, L"Error: %s: wrong magic or version\n", fn);
     fclose(f);
     return NULL;
   }
@@ -65,7 +65,7 @@ char *TFXX_read(FILE *f, size_t comp_size, size_t uncomp_size)
 
   char *uncomp_data = malloc(uncomp_size);
   if (inflate_bytes(comp_data, comp_size, uncomp_data, uncomp_size) != Z_OK) {
-    wprintf(L"inflate error\n");
+    fwprintf(stderr, L"inflate error\n");
     free(uncomp_data);
     uncomp_data = NULL;
   }
@@ -176,7 +176,7 @@ void TFXX_write(FILE *f, const char *uncomp_data, size_t uncomp_size)
   uint32_t comp_size = uncomp_size + 512;
   char *comp_data = malloc(comp_size);
   if (deflate_bytes(uncomp_data, uncomp_size, comp_data, &comp_size) != Z_OK) {
-    wprintf(L"deflate error\n");
+    fwprintf(stderr, L"deflate error\n");
   }
   fwrite(&comp_size, 4, 1, f);
   fwrite(comp_data, comp_size, 1, f);

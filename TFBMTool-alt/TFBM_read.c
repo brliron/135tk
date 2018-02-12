@@ -19,7 +19,7 @@ int convert_TFBM_to_PNG(LPCWSTR tfbm, LPCWSTR tfpa, LPCWSTR out_png)
   char *data = NULL;
   {
     FILE *f = TFXX_open_read(tfbm, "TFBM", &header, sizeof(header));
-    data = TFXX_read(f, header.comp_size, header.padding_width * header.height);
+    data = TFXX_read(f, header.comp_size, header.width * header.height * header.bpp / 8);
     if (!data) {
       png_destroy_write_struct(&png_ptr, &info_ptr);
       return 0;
@@ -30,7 +30,7 @@ int convert_TFBM_to_PNG(LPCWSTR tfbm, LPCWSTR tfpa, LPCWSTR out_png)
   png_byte *tRNS = NULL;
   if (header.bpp == 8) {
     if (!tfpa) {
-      wprintf(L"Error: no palette given for a 8-bits with palette TFBM image.\n");
+      fwprintf(stderr, L"Error: no palette given for a 8-bits with palette TFBM image.\n");
       png_destroy_write_struct(&png_ptr, &info_ptr);
       free(data);
       return 0;
@@ -78,7 +78,7 @@ int convert_TFBM_to_PNG(LPCWSTR tfbm, LPCWSTR tfpa, LPCWSTR out_png)
   else if (header.bpp == 32) {
     color_type = PNG_COLOR_TYPE_RGB_ALPHA;
   }
-  png_set_IHDR(png_ptr, info_ptr, header.width, header.height, header.bpp, color_type,
+  png_set_IHDR(png_ptr, info_ptr, header.width, header.height, 8, color_type,
 	       PNG_INTERLACE_NONE, PNG_COMPRESSION_TYPE_DEFAULT, PNG_FILTER_TYPE_DEFAULT);
 
   if (header.bpp == 8) {
@@ -88,9 +88,9 @@ int convert_TFBM_to_PNG(LPCWSTR tfbm, LPCWSTR tfpa, LPCWSTR out_png)
   else if (header.bpp == 24 || header.bpp == 32) {
     // BGR to RGB, or BGRA to RGBA
     for (uint32_t i = 0; i < header.height; i++) {
-      char *line = &data[i * header.padding_width];
-      for (uint32_t j = 0; i < header.width; i++) {
-	char *pixel = &line[j * header.bpp / 8];
+      char *line = &data[i * header.width * header.bpp / 8];
+      for (uint32_t j = 0; j < header.width; j++) {
+	uint8_t *pixel = (uint8_t*)&line[j * header.bpp / 8];
 	uint8_t r = pixel[2];
 	uint8_t b = pixel[0];
 	pixel[0] = r;
@@ -102,7 +102,7 @@ int convert_TFBM_to_PNG(LPCWSTR tfbm, LPCWSTR tfpa, LPCWSTR out_png)
   png_write_info(png_ptr, info_ptr);
 
   for (uint32_t i = 0; i < header.height; i++) {
-    png_write_row(png_ptr, (png_bytep)(data + i * header.padding_width));
+    png_write_row(png_ptr, (png_bytep)(data + i * header.width * header.bpp / 8));
   }
   png_write_end(png_ptr, NULL);
 

@@ -13,7 +13,7 @@ int convert_PNG_to_TFBM(LPCWSTR png, LPCWSTR out_tfbm)
   uint8_t sig[8];
   fread(sig, 1, 8, in);
   if (!png_check_sig(sig, 8)) {
-    wprintf(L"%s: invalid PNG signature\n", png);
+    fwprintf(stderr, L"%s: invalid PNG signature\n", png);
     fclose(in);
     return 0;
   }
@@ -41,7 +41,7 @@ int convert_PNG_to_TFBM(LPCWSTR png, LPCWSTR out_tfbm)
 	(bit_depth == 32 && color_type == PNG_COLOR_TYPE_RGB_ALPHA)
 	))
     {
-      wprintf(L"Only the following color types are supported: 8-bits with palette, 24-bits RGB, 32-bits RGBA.\n");
+      fwprintf(stderr, L"Only the following color types are supported: 8-bits with palette, 24-bits RGB, 32-bits RGBA.\n");
       png_destroy_read_struct(&png_ptr, &info_ptr, NULL);
       fclose(in);
       return 0;
