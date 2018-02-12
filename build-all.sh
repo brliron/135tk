@@ -14,7 +14,7 @@ cp bmpfont/bmpfont_extract.exe bmpfont/bmpfont_convert.exe bmpfont/bmpfont_creat
 cp nhtextool/nhtextool.exe bin
 cp orig_135tk/* bin
 cp read_pat/read_pat.exe bin
-cp TFBMTool-alt/TFBMTool-alt.exe bin
+cp TFBMTool-alt/TFBMTool-alt.exe TFBMTool-alt/extractBM-alt.exe bin
 cp th145arc/th145arc.exe th145arc/fileslist.txt bin
 
 # Copy dependencies
