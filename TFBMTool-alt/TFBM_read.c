@@ -3,7 +3,7 @@
 #include <png.h>
 #include "TFBMTool.h"
 
-int convert_TFBM_to_PNG(const char *tfbm, const char *tfpa, const char *out_png)
+int convert_TFBM_to_PNG(LPCWSTR tfbm, LPCWSTR tfpa, LPCWSTR out_png)
 {
   png_structp png_ptr;
   png_infop info_ptr;
@@ -30,7 +30,7 @@ int convert_TFBM_to_PNG(const char *tfbm, const char *tfpa, const char *out_png)
   png_byte *tRNS = NULL;
   if (header.bpp == 8) {
     if (!tfpa) {
-      printf("Error: no palette given for a 8-bits with palette TFBM image.\n");
+      wprintf(L"Error: no palette given for a 8-bits with palette TFBM image.\n");
       png_destroy_write_struct(&png_ptr, &info_ptr);
       free(data);
       return 0;
@@ -57,9 +57,9 @@ int convert_TFBM_to_PNG(const char *tfbm, const char *tfpa, const char *out_png)
     free(plt_data);
   }
 
-  FILE *out = fopen(out_png, "wb");
+  FILE *out = _wfopen(out_png, L"wb");
   if (!out) {
-    perror(out_png);
+    _wperror(out_png);
     if (palette) png_free(png_ptr, palette);
     if (tRNS) png_free(png_ptr, tRNS);
     png_destroy_write_struct(&png_ptr, &info_ptr);
