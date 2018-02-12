@@ -1,11 +1,15 @@
-# Build
+# Clean
 make -C Act-Nut-Lib clean
+rm -rf bin
+
+# Build
 make -C Act-Nut-Lib
-cd bmpfont      ; ./build.sh; cd ..
-cd nhtextool    ; ./build.sh; cd ..
-cd read_pat     ; ./build.sh; cd ..
-cd TFBMTool-alt ; ./build.sh; cd ..
-cd th145arc     ; ./build.sh; cd ..
+for dir in bmpfont nhtextool read_pat TFBMTool-alt th145arc; do
+    echo "Building $dir..."
+    cd $dir
+    ./build.sh
+    cd ..
+done
 
 # Copy binaries
 mkdir -p bin
