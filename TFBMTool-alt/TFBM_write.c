@@ -37,11 +37,11 @@ int convert_PNG_to_TFBM(LPCWSTR png, LPCWSTR out_tfbm)
   png_get_IHDR(png_ptr, info_ptr, &width, &height, &bit_depth, &color_type, NULL, NULL, NULL);
   if (!(
 	(bit_depth == 8  && color_type == PNG_COLOR_TYPE_PALETTE) ||
-	//(bit_depth == 24 && color_type == PNG_COLOR_TYPE_RGB) ||
+	(bit_depth == 24 && color_type == PNG_COLOR_TYPE_RGB) ||
 	(bit_depth == 32 && color_type == PNG_COLOR_TYPE_RGB_ALPHA)
 	))
     {
-      fwprintf(stderr, L"Only the following color types are supported: 8-bits with palette, 32-bits RGBA.\n");
+      fwprintf(stderr, L"Only the following color types are supported: 8-bits with palette, 24-bits RGB, 32-bits RGBA.\n");
       png_destroy_read_struct(&png_ptr, &info_ptr, NULL);
       fclose(in);
       return 0;
@@ -73,7 +73,7 @@ int convert_PNG_to_TFBM(LPCWSTR png, LPCWSTR out_tfbm)
   header.bpp = bit_depth;
   header.width = width;
   header.height = height;
-  header.padding_width = width;
+  header.padding_width = width; // TODO: add padding pixels
   FILE *fout = TFXX_open_write(out_tfbm, "TFBM", &header, sizeof(TFBM_header));
   TFXX_write(fout, (char*)image_data, rowbytes * height);
   free(image_data);
