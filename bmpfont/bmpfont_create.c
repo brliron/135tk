@@ -4,6 +4,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <png.h>
 #include "bmpfont_create.h"
 
 #pragma pack(push, 1)
@@ -123,6 +124,52 @@ int put_char(void* obj, WCHAR c, BYTE** dest, State* state, CharDetail* charDeta
   return 1;
 }
 
+int export_to_PNG(uint8_t** rows, size_t width, size_t height, char* out_png)
+{
+  png_structp png_ptr;
+  png_infop info_ptr;
+
+  png_ptr = png_create_write_struct(PNG_LIBPNG_VER_STRING, NULL, NULL, NULL);
+  info_ptr = png_create_info_struct(png_ptr);
+  if (!png_ptr || !info_ptr || setjmp(png_jmpbuf(png_ptr))) {
+    png_destroy_write_struct(&png_ptr, &info_ptr);
+    return 0;
+  }
+
+  FILE *out = fopen(out_png, "wb");
+  if (!out) {
+    perror(out_png);
+    png_destroy_write_struct(&png_ptr, &info_ptr);
+    return 0;
+  }
+  png_init_io(png_ptr, out);
+
+  // TODO: change bit depth to 4
+  png_set_IHDR(png_ptr, info_ptr, width, height, 8, PNG_COLOR_TYPE_GRAY,
+	       PNG_INTERLACE_NONE, PNG_COMPRESSION_TYPE_DEFAULT, PNG_FILTER_TYPE_DEFAULT);
+
+  uint8_t* out_data = malloc(width * height);
+  uint8_t** out_rows = malloc(height * sizeof(uint8_t*));
+  for (uint32_t i = 0; i < height; i++) {
+    out_rows[i] = &out_data[i * width];
+    for (uint32_t j = 0; j < width; j++)
+      out_rows[i][j] = rows[i][j];
+  }
+
+  png_write_info(png_ptr, info_ptr);
+
+  for (uint32_t i = 0; i < height; i++) {
+    png_write_row(png_ptr, out_rows[i]);
+  }
+  png_write_end(png_ptr, NULL);
+
+  png_destroy_write_struct(&png_ptr, &info_ptr);
+  free(out_rows);
+  free(out_data);
+  fclose(out);
+  return 1;
+}
+
 void usage(const char* exe)
 {
   printf("Usage: %s option...\n"
@@ -133,8 +180,8 @@ void usage(const char* exe)
 	 "                    with an image editor.\n"
 	 "                    packed_rgba is the format used by the game.\n"
 	 "                    packed_grayscale is the format expected by thcrap.\n"
+	 "                    It also creates a PNG output.\n"
 	 "  --out output_file Output file name (required).\n"
-	 "  --png             Convert the output to PNG (not implemented).\n"
 	 "  --plugin plugin   Plugin to be used to render the texts (required).\n"
 	 "  --font-file file  Font file to load before looking for a font.\n"
 	 , exe);
@@ -180,24 +227,21 @@ enum {
   ARG_HELP = 2,
   ARG_FORMAT,
   ARG_OUT,
-  ARG_PNG,
   ARG_PLUGIN,
   ARG_FONTFILE,
 };
-int options(int ac, char* const* av, char** out, int* png, char** font_file)
+int options(int ac, char* const* av, char** out, char** font_file)
 {
   struct option options[] = {
     { "help",      no_argument,       NULL, ARG_HELP },
     { "format",    required_argument, NULL, ARG_FORMAT },
     { "out",       required_argument, NULL, ARG_OUT },
-    { "png",       no_argument,       NULL, ARG_PNG },
     { "plugin",    required_argument, NULL, ARG_PLUGIN },
     { "font-file", required_argument, NULL, ARG_FONTFILE },
     { NULL,        0,                 NULL, 0 },
   };
   int help = 0;
   *out = NULL;
-  *png = 0;
   *font_file = NULL;
 
   int idx;
@@ -227,10 +271,6 @@ int options(int ac, char* const* av, char** out, int* png, char** font_file)
 
       case ARG_OUT:
 	*out = optarg;
-	break;
-
-      case ARG_PNG:
-	*png = 1;
 	break;
 
       case ARG_FONTFILE:
@@ -277,11 +317,9 @@ int main(int ac, char* const* av)
 {
   // OutputType outputType; // global
   char* out_fn;
-  int png;
   char* font_file;
-  (void)png; // not implemented
 
-  if (!options(ac, av, &out_fn, &png, &font_file))
+  if (!options(ac, av, &out_fn, &font_file))
     return 0;
 
   if (font_file)
@@ -414,6 +452,16 @@ int main(int ac, char* const* av)
   int line;
   for (line = state.h - 1; line >= 0; line--)
     fwrite(rows[line], state.w * info.biBitCount / 8, 1, fout);
+
+  // PNG output for thcrap
+  if (output_type == PACKED_GRAYSCALE)
+    {
+      char *path_png = (char*)malloc(strlen(out_fn) + 5);
+      strcpy(path_png, out_fn);
+      strcat(path_png, ".png");
+      export_to_PNG(rows, state.w, state.h, path_png);
+      free(path_png);
+    }
 
   // Metadatas
   if (output_type == PACKED_GRAYSCALE)
