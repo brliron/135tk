@@ -187,7 +187,7 @@ void* graphics_init(int ac, char* const* av)
   free(w_font_name);
   if (!obj->font->IsAvailable())
     {
-      printf("Could not open font %s\n", "Arial");
+      printf("Could not open font %s\n", font_name);
       delete obj;
       GdiPlusGraphics::freeGdiplus();
       return NULL;
@@ -206,6 +206,7 @@ void graphics_free(void* obj_)
 void graphics_put_char(void* obj_, WCHAR c, BYTE** dest, int* w, int* h)
 {
   GdiPlusGraphics* obj = (GdiPlusGraphics*)obj_;
+  Gdiplus::Rect rect;
 
   {
     Gdiplus::Graphics graphics(obj->hdc);
@@ -224,14 +225,7 @@ void graphics_put_char(void* obj_, WCHAR c, BYTE** dest, int* w, int* h)
     graphics.DrawPath(&pen, &path);
     graphics.FillPath(&brush, &path);
 
-    Gdiplus::Rect rect;
     path.GetBounds(&rect, NULL, &pen);
-    *w = rect.GetRight();
-    *h = rect.GetBottom();
-    if (*w < 0)
-      *w = 0;
-    if (*h < 0)
-      *h = 0;
   }
 
   BITMAPINFO info;
@@ -249,7 +243,44 @@ void graphics_put_char(void* obj_, WCHAR c, BYTE** dest, int* w, int* h)
   info.bmiHeader.biClrImportant = 0;
   GetDIBits(obj->hdc, obj->hBmp, 0, 256, obj->bmpData, &info, DIB_RGB_COLORS);
 
-  int y;
-  for (y = 0; y < *h; y++)
-    memcpy(dest[y], &obj->bmpData[(255 - y) * 256 * 4], *w * 4);
+  // Keep the rect inside the bitmap
+  if (rect.X < 0)
+    rect.X = 0;
+  if (rect.Y < 0)
+    rect.Y = 0;
+  // Fix left bound
+  for (int i = rect.X; i < rect.GetRight(); i++)
+    {
+      int j;
+      for (j = rect.Y; j < rect.GetBottom(); j++)
+	if (obj->bmpData[(255 - j) * 256 * 4 + i * 4 + 0] != 0 ||
+	    obj->bmpData[(255 - j) * 256 * 4 + i * 4 + 1] != 0 ||
+	    obj->bmpData[(255 - j) * 256 * 4 + i * 4 + 2] != 0)
+	  break;
+      if (j != rect.GetBottom())
+	break;
+      rect.X++;
+      rect.Width--;
+    }
+  // Fix right bound
+  for (int i = rect.X; i < rect.GetRight(); i++)
+    {
+      int j;
+      for (j = rect.Y; j < rect.GetBottom(); j++)
+	if (obj->bmpData[(255 - j) * 256 * 4 + i * 4 + 0] != 0 ||
+	    obj->bmpData[(255 - j) * 256 * 4 + i * 4 + 1] != 0 ||
+	    obj->bmpData[(255 - j) * 256 * 4 + i * 4 + 2] != 0)
+	  break;
+      if (j == rect.GetBottom())
+	{
+	  rect.Width = i - rect.X;
+	  break;
+	}
+    }
+
+  for (int y = 0; y < rect.GetBottom(); y++)
+    memcpy(dest[y], &obj->bmpData[(255 - y) * 256 * 4 + rect.X * 4], rect.Width * 4);
+
+  *w = rect.Width;
+  *h = rect.Height;
 }
