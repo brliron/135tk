@@ -20,14 +20,30 @@ static int inflate_bytes(char* file_in, size_t size_in, char* file_out, size_t s
 	if (ret != Z_OK) {
 		return ret;
 	}
-	do {
-		ret = inflate(&strm, Z_NO_FLUSH);
-		if (ret != Z_OK) {
-			break;
-		}
-	} while (ret != Z_STREAM_END);
+	ret = inflate(&strm, Z_FINISH);
 	inflateEnd(&strm);
-	return ret == Z_STREAM_END ? Z_OK : ret;
+
+	if (ret == Z_STREAM_END) {
+		// Stream finished - everything is good.
+	}
+	else if (ret == Z_OK || ret == Z_BUF_ERROR) {
+		if (strm.avail_in == 0) {
+			fwprintf(stderr, L"Warning: zlib end of stream not found.\n");
+			// Some streams are just missing the end of stream marker.
+			// To accommodate for these streams, we'll pretend everything worked.
+			ret = Z_STREAM_END;
+		}
+		else if (strm.avail_out == 0) {
+			fwprintf(stderr, L"Decompression error: invalid TFBM header.\n");
+		}
+		else {
+			fwprintf(stderr, L"Decompression error %d\n", ret);
+		}
+	}
+	else {
+		fwprintf(stderr, L"Decompression error %d\n", ret);
+	}
+	return ret;
 }
 
 FILE *TFXX_open_read(LPCWSTR fn, const char *in_magic, void *header, size_t header_size)
@@ -64,8 +80,7 @@ char *TFXX_read(FILE *f, size_t comp_size, size_t uncomp_size)
   fclose(f);
 
   char *uncomp_data = malloc(uncomp_size);
-  if (inflate_bytes(comp_data, comp_size, uncomp_data, uncomp_size) != Z_OK) {
-    fwprintf(stderr, L"inflate error\n");
+  if (inflate_bytes(comp_data, comp_size, uncomp_data, uncomp_size) != Z_STREAM_END) {
     free(uncomp_data);
     uncomp_data = NULL;
   }
