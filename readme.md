@@ -10,7 +10,9 @@ Also, some of these tools will also compile on Linux with the same commands.
 When you clone the repository, eiher use the `--recursive` command line switch or run `git submodule init && git submodule update`. To build 
 
 
-Global note about the tools: you would use `./tool_name` only if you run them from an unix-like shell (like MinGW-w64). If you run them from a Windows command prompt, replace every occurence of `./tool_name` in this readme with just `tool_name`.
+Global notes about the tools:
+- You would use `./tool_name` only if you run them from an unix-like shell (like MinGW-w64). If you run them from a Windows command prompt, replace every occurence of `./tool_name` in this readme with just `tool_name`.
+- Some tools use Windows-style parameters (for example `/x file`). They may be interpreted as paths on MinGW/cygwin, but most of these tools will also support the unix-style variant (for example `-x file`).
 
 ## Act/Nut lib
 Act/Nut lib is a library to parse and edit the Act and Nut files. Nut files are compiled [Squirrel 3](https://github.com/albertodemichelis/squirrel) scripts that can be read with the [Squirrel `sq_readclosure` function](https://github.com/albertodemichelis/squirrel/blob/453a9668903238ec18da1e7fd1f91c60d42ab502/include/squirrel.h#L359). And I don't exactly know what are Act files, they don't seem to belong to a standard file format.
@@ -59,8 +61,6 @@ Also, the language in which you write your plugin doesn't matter as long as you 
 A tool to unpack and edit nhtex files.
 
 Usage: `./nhtextool (/x|/p) file.nhtex`  
-*The /x and /p switches may be interpreted as paths on MinGW/cygwin, but the unix-style -x and -p also work.*
-
 `./nhtextool /x file.nhtex` will extract the image in file.nhtex to either file.nhtex.png (if file.nhtex contains a PNG file), file.nhtex.dds (if file.nhtex contains a DDS file), or file.nhtex.bin (if it couldn't guess the file type).
 
 `./nhtextool /p file.nhtex` will replace the image in file.nhtex with either file.nhtex.png, file.nhtex.dds or file.nhtex.bin (using the algorithm above).
@@ -87,14 +87,20 @@ You can also run it with a partial JSON file. For example, if the JSON file you 
 *This behavior seems confusing to most users and may change in future releases (probably by adding a -x or -p switch to lock the program into reading/writing).*
 
 ## TFBMTool-alt (original by Riatre in Python, rewritten in C by brliron)
-A C rewrite of Riatre's TFBMTool, with support for 8-bits images with palette. But this one doesn't support repacking yet.  
-Since it doesn't support repacking, it doesn't need a read/write switch for now. Also, it always overwrites the TFBM file in place.  
-Usage: `./TFBMTool tfbm_file.[bmp|png] [palette_XXX.bmp]`  
-The palette is optional for 24-bpp and 32-bpp TFBM files. It is mandatory for 8-bpp TFBM files. And actually, due to a bug in the current version, if you try to convert a 8-bpp TFBM file without providing a valid palette, the TFBM file's content will be erased.
+A C rewrite of Riatre's TFBMTool, with support for 8-bits images with palette.  
+This one always overwrites the TFBM file in place, because I've never seen anyone actually using the original in another way.  
+Usage (extraction): `./TFBMTool /x tfbm_file.[bmp|png] [palette_XXX.bmp]`  
+The palette is optional (and not used) for 24-bpp and 32-bpp TFBM files. It is mandatory for 8-bpp TFBM files, and the extracted file will be a 8-bpp PNG file with a palette.  
+Usage (repacking): `./TFBMTool /p tfbm_file.[bmp|png]`
+
+# extractBM-alt
+A C rewrite of Riatre's extractBM using TFBMTool-alt. It searches for every png and bmp files in the current directory and its subdirectories (recursively), and calls TFBMTool-alt on them.  
+Because it uses TFBMTool-alt, it supports 8-bits images with palette, using the palette000.bmp file from the image file's directory.
+Also, it should be significantly faster when going through all the file of a game, because it is entierly written in C, even the file search. Handling a file doesn't result on a new processus, only on a function call. Errors don't throw exceptions, they only return from a few functions. It display only the file names and the errors (and there will be way fewer errors, because we support 8-bits files with palette).
+Usage: just double-click on it (or run `./extractBM-alt`).
 
 ## th145arc (original by Riatre, updated by brliron)
 A tool to extract and repack the pak files from Touhou 14.5 and Touhou 15.5.  
 To extract files, run `./th145arc /x th145.pak`. To repack them, run `./th145arc /p th145.pak`.  
-*The /x and /p switches may be interpreted as paths on MinGW/cygwin, but the unix-style -x and -p also work.*
 
 Archives created with /p will only be usable by the Touhou 14.5 English patch, the original game won't be able to open them. And there is currently no way to use the archives created by this tool in Touhou 15.5.
