@@ -89,11 +89,13 @@ You can also run it with a partial JSON file. For example, if the JSON file you 
 ## TFBMTool-alt (original by Riatre in Python, rewritten in C by brliron)
 A C rewrite of Riatre's TFBMTool, with support for 8-bits images with palette.  
 This one always overwrites the TFBM file in place, because I've never seen anyone actually using the original in another way.  
+
 Usage (extraction): `./TFBMTool /x tfbm_file.[bmp|png] [palette_XXX.bmp]`  
 The palette is optional (and not used) for 24-bpp and 32-bpp TFBM files. It is mandatory for 8-bpp TFBM files, and the extracted file will be a 8-bpp PNG file with a palette.  
+
 Usage (repacking): `./TFBMTool /p tfbm_file.[bmp|png]`
 
-# extractBM-alt
+### extractBM-alt
 A C rewrite of Riatre's extractBM using TFBMTool-alt. It searches for every png and bmp files in the current directory and its subdirectories (recursively), and calls TFBMTool-alt on them.  
 Because it uses TFBMTool-alt, it supports 8-bits images with palette, using the palette000.bmp file from the image file's directory.
 Also, it should be significantly faster when going through all the file of a game, because it is entierly written in C, even the file search. Handling a file doesn't result on a new processus, only on a function call. Errors don't throw exceptions, they only return from a few functions. It display only the file names and the errors (and there will be way fewer errors, because we support 8-bits files with palette).
