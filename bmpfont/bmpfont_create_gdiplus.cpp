@@ -281,6 +281,6 @@ void graphics_put_char(void* obj_, WCHAR c, BYTE** dest, int* w, int* h)
   for (int y = 0; y < rect.GetBottom(); y++)
     memcpy(dest[y], &obj->bmpData[(255 - y) * 256 * 4 + rect.X * 4], rect.Width * 4);
 
-  *w = rect.Width;
-  *h = rect.Height;
+  *w = rect.Width + 2;
+  *h = rect.GetBottom();
 }
