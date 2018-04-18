@@ -101,6 +101,18 @@ static void	type7(FILE* fp, json_t *js)
   printf("b=%u\n", b);
 }
 
+static void	type128(FILE* fp, int i, json_t *js)
+{
+  uint32_t	path_size = read_u32(fp, js, "path_size");
+  char		path[256];
+
+  read_str(fp, path, path_size, js, "path");
+  path[path_size] = '\0';
+  names[i] = strdup(path);
+
+  printf("path=%s\n", path);
+}
+
 static void	entry(FILE* fp, char* pat_path, unsigned int entry_index, json_t *js)
 {
   uint8_t	unk1 = read_u8(fp, js, "unk1");
@@ -109,7 +121,7 @@ static void	entry(FILE* fp, char* pat_path, unsigned int entry_index, json_t *js
   unsigned int	i = 0;
   while (i < nb_elems)
     {
-      json_t*	elem = js_enter(js, idx_to_str("elem_", i));
+      json_t*	elem = js_enter(js, idx_to_str("elem_", i + 1));
       uint8_t	type = read_u8(fp, elem, "type");
       printf("    %.4d: type=%u, ", i, type);
       if (type == 0)
@@ -122,6 +134,8 @@ static void	entry(FILE* fp, char* pat_path, unsigned int entry_index, json_t *js
 	type4(fp, i, elem);
       else if (type == 7)
 	type7(fp, elem);
+      else if (type == 128)
+	type128(fp, i, elem);
       else
 	{
 	  printf("Unknown type %d\n", type);

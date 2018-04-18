@@ -3,8 +3,14 @@
 void	part1(FILE* fp, char* pat_path, json_t *js)
 {
   (void)pat_path;
-  uint8_t	unk1 = read_u8(fp, js, "version");
-  printf("part1:\n  version = %d\n", unk1);
+  uint8_t	version = read_u8(fp, js, "version");
+  if (version != 17)
+    {
+      printf("Error: invalid version number (%d). Only version 17 is supported.\n"
+	     "Maybe you can open this file with notepad?\n", version);
+      exit(1);
+    }  
+  printf("part1:\n  version = %d\n", version);
 
   uint8_t	nb_entries = read_u8(fp, js, "nb_entries");
   unsigned int	i = 0;
