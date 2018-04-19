@@ -148,7 +148,7 @@ static void	layer_type0(FILE* fp, json_t *js)
   uint8_t	unk4 = read_u8( fp, js, "unk4");
   uint8_t	unk5 = read_u8( fp, js, "unk5");
   uint8_t	unk6 = read_u8( fp, js, "unk6");
-  uint16_t	nb_element = read_u16(fp, js, "unk7");
+  uint16_t	nb_element = read_u16(fp, js, "nb_element");
 
   printf(", unk3 = %d, unk4 = %d, unk5 = %d, unk6 = %d\n", unk3, unk4, unk5, unk6);
   // Known names: blend, filter, flags, shader
@@ -193,6 +193,42 @@ static void	layer_type1(FILE* fp, json_t *js)
     layer_type1_element(fp, i, js_enter(js, idx_to_str("element_", i + 1)));
 }
 
+static void	layer_type2_element(FILE* fp, unsigned int entry_index, json_t *js)
+{
+  printf("      element %d:\n", entry_index + 1);
+  matrix(fp, "        ", js);
+
+  uint32_t	argb = read_u32(fp, js, "argb");
+  uint16_t	unk1 = read_u16(fp, js, "unk1");
+  uint16_t	unk2 = read_u16(fp, js, "unk2");
+  uint16_t	unk3 = read_u16(fp, js, "unk3");
+  uint16_t	unk4 = read_u16(fp, js, "unk4");
+  uint16_t	unk5 = read_u16(fp, js, "unk5");
+  uint16_t	unk6 = read_u16(fp, js, "unk6");
+  uint16_t	unk7 = read_u16(fp, js, "unk7");
+  uint16_t	unk8 = read_u16(fp, js, "unk8");
+  uint16_t	unk9 = read_u16(fp, js, "unk9");
+
+  printf("        argb=%.8X, unk1 = %d, unk2 = %d, unk3 = %d, unk4 = %d, unk5 = %d, unk6 = %d, unk7 = %d, unk8 = %d, unk9 = %d\n",
+	 argb, unk1, unk2, unk3, unk4, unk5, unk6, unk7, unk8, unk9);
+}
+
+static void	layer_type2(FILE* fp, json_t *js)
+{
+  uint8_t	unk3 = read_u8( fp, js, "unk3");
+  uint8_t	unk4 = read_u8( fp, js, "unk4");
+  uint8_t	unk5 = read_u8( fp, js, "unk5");
+  uint8_t	unk6 = read_u8( fp, js, "unk6");
+  uint16_t	nb_element = read_u16(fp, js, "nb_element");
+
+  printf(", unk3 = %d, unk4 = %d, unk5 = %d, unk6 = %d\n", unk3, unk4, unk5, unk6);
+  // Known names: blend, filter, flags, shader
+
+  unsigned int	i;
+  for (i = 0; i < nb_element; i++)
+    layer_type2_element(fp, i, js_enter(js, idx_to_str("element_", i + 1)));
+}
+
 static void	layer_type3_element(FILE* fp, unsigned int entry_index, json_t *js)
 {
   printf("      element %d:\n", entry_index + 1);
@@ -217,7 +253,7 @@ static void	layer_type3(FILE* fp, json_t *js)
   uint8_t	unk4 = read_u8( fp, js, "unk4");
   uint8_t	unk5 = read_u8( fp, js, "unk5");
   uint8_t	unk6 = read_u8( fp, js, "unk6");
-  uint16_t	nb_element = read_u16(fp, js, "unk7");
+  uint16_t	nb_element = read_u16(fp, js, "nb_element");
 
   printf(", unk3 = %d, unk4 = %d, unk5 = %d, unk6 = %d\n", unk3, unk4, unk5, unk6);
   // Known names: blend, filter, flags, shader
@@ -283,6 +319,37 @@ static void	layer_type7(FILE* fp, json_t *js)
     layer_type7_element(fp, i, js_enter(js, idx_to_str("element_", i + 1)));
 }
 
+static void	layer_type128_element(FILE* fp, unsigned int entry_index, json_t *js)
+{
+  printf("      element %d:\n", entry_index + 1);
+  matrix(fp, "        ", js);
+
+  uint32_t	argb = read_u32(fp, js, "argb");
+  short	        name = read_u16(fp, js, "name");
+  short		x = read_u16(fp, js, "x"); // left
+  short		y = read_u16(fp, js, "y"); // top
+  short		w = read_u16(fp, js, "w"); // width
+  short		h = read_u16(fp, js, "h"); // height
+
+  printf("        argb=%.8X, source=%s, x=%d, y=%d, w=%d, h=%d\n", argb, img_idx_to_name(name), x, y, w, h);
+}
+
+static void	layer_type128(FILE* fp, json_t *js)
+{
+  uint8_t	unk3 = read_u8( fp, js, "unk3");
+  uint8_t	unk4 = read_u8( fp, js, "unk4");
+  uint8_t	unk5 = read_u8( fp, js, "unk5");
+  uint8_t	unk6 = read_u8( fp, js, "unk6");
+  uint16_t	nb_element = read_u16(fp, js, "nb_element");
+
+  printf(", unk3 = %d, unk4 = %d, unk5 = %d, unk6 = %d\n", unk3, unk4, unk5, unk6);
+  // Known names: blend, filter, flags, shader
+
+  unsigned int	i;
+  for (i = 0; i < nb_element; i++)
+    layer_type128_element(fp, i, js_enter(js, idx_to_str("element_", i + 1)));
+}
+
 static void	layer(FILE* fp, unsigned int entry_index, json_t *js)
 {
   uint8_t	type = read_u8( fp, js, "type");
@@ -298,6 +365,9 @@ static void	layer(FILE* fp, unsigned int entry_index, json_t *js)
     case 1:
       layer_type1(fp, js);
       break;
+    case 2:
+      layer_type2(fp, js);
+      break;
     case 3:
       layer_type3(fp, js);
       break;
@@ -306,6 +376,9 @@ static void	layer(FILE* fp, unsigned int entry_index, json_t *js)
       break;
     case 7:
       layer_type7(fp, js);
+      break;
+    case 128:
+      layer_type128(fp, js);
       break;
     default:
       printf("\n    Error: unknown layer type %d\n", type);
