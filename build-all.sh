@@ -1,6 +1,7 @@
 # Clean
 make -C Act-Nut-Lib clean
 rm -rf 135tk
+rm -rf 135tk.zip
 
 # Build
 make -C Act-Nut-Lib
