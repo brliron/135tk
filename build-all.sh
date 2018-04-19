@@ -26,3 +26,6 @@ DEP_DIR=/mingw32/bin
 cp $DEP_DIR/libgcc_s_dw2-1.dll $DEP_DIR/libjansson-4.dll $DEP_DIR/libpng16-16.dll $DEP_DIR/libstdc++-6.dll $DEP_DIR/libwinpthread-1.dll $DEP_DIR/zlib1.dll 135tk
 
 cp readme.md 135tk
+
+# Create zip
+zip -r 135tk.zip 135tk
