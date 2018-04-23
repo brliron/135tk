@@ -140,6 +140,41 @@ void	unmap(MapStruct& mapStruct)
   CloseHandle(mapStruct.hFile);
 }
 
+const wchar_t* guess_extension(const BYTE* bytes, size_t size)
+{
+	const char* cbytes = (const char*)bytes; // for strcmp
+	if (size >= 73 && memcmp(cbytes, "#========================================================================", 73) == 0)
+		return L".pl";
+	if (size >= 12 && memcmp(cbytes, "RIFF", 4) == 0 && memcmp(cbytes + 8, "SFPL", 4) == 0)
+		return L".sfl";
+	if (size >= 6 && memcmp(cbytes, "\xFA\xFARIQS", 6) == 0)
+		return L".nut";
+	if (size >= 4 && memcmp(cbytes, "TFBM", 4) == 0)
+		return L".png";
+	if (size >= 4 && memcmp(cbytes, "\x89PNG", 4) == 0)
+		return L".png";
+	if (size >= 4 && memcmp(cbytes, "TFCS", 4) == 0)
+		return L".csv";
+	if (size >= 4 && memcmp(cbytes, "DDS ", 4) == 0)
+		return L".dds";
+	if (size >= 4 && memcmp(cbytes, "OggS", 4) == 0)
+		return L".ogg";
+	if (size >= 4 && memcmp(cbytes, "eft$", 4) == 0)
+		return L".eft";
+	if (size >= 4 && memcmp(cbytes, "TFWA", 4) == 0)
+		return L".wav";
+	if (size >= 4 && memcmp(cbytes, "TFPA", 4) == 0)
+		return L".bmp";
+	if (size >= 4 && memcmp(cbytes, "IBMB", 4) == 0)
+		return L".bmb";
+	if (size >= 4 && memcmp(cbytes, "MZ", 4) == 0)
+		return L".dll";
+	if (size >= 1 && bytes[0] == 17)
+		return L".pat";
+	return nullptr;
+}
+
+
 int ExtractAll(const char* ArchiveFileName,const char* OutputFolder)
 {
 	MapStruct mapStruct;
@@ -155,7 +190,7 @@ int ExtractAll(const char* ArchiveFileName,const char* OutputFolder)
 	}
 	if (pPackage[4] != 1)
 	{
-		printf("Error: this tool works only with Touhou 14.5 archives.\n");
+		printf("Error: this tool works only with Touhou 14.5 and Touhou 15.5 archives.\n");
 		return 0;
 	}
 
@@ -235,12 +270,9 @@ int ExtractAll(const char* ArchiveFileName,const char* OutputFolder)
 		}
 		if (strncmp(FileList[i].FileName, "unk_", 4) == 0)
 		{
-			if (*(DWORD*)Data == 'MBFT' || *(DWORD*)Data == 'GNP\x89')
-				wcscat(unicodeName, L".png");
-			if (*(DWORD*)Data == 'SCFT')
-				wcscat(unicodeName, L".csv");
-			if (*(DWORD*)Data == ' SDD')
-				wcscat(unicodeName, L".dds");
+			const wchar_t *ext = guess_extension(Data, FileList[i].FileSize);
+			if (ext)
+				wcscat(unicodeName, ext);
 		}
 		CreateDirectoryForPath(unicodeName);
 		FILE* fp;
