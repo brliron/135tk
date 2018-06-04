@@ -21,6 +21,9 @@ private:
 
 private:
   bool initRsaPublicKey(const unsigned char* crypted_sample);
+  bool skipPadding(const unsigned char *data, size_t& i);
+  bool checkPadding(const unsigned char *data);
+  bool skipPaddingAndCopy(const unsigned char *src, unsigned char *dst, size_t size);
   void DecryptBlock(const unsigned char* src, unsigned char* dst);
   bool Decrypt6432(const unsigned char* src, unsigned char* dst, size_t dstLen);
 

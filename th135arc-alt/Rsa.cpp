@@ -54,8 +54,6 @@ const unsigned char KEY_d[Rsa::KEY_BYTESIZE] = {
   0x7B, 0xA7, 0xA4, 0xAC, 0x89, 0x20, 0xA6, 0x93, 0x91, 0x1C, 0x63, 0x5A, 0x83, 0x8E, 0x08, 0x01
 };
 
-const unsigned char PaddingBytes[32] = {0x00,0x01,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0x00};
-
 void Rsa::initMiracl()
 {
   miracl* mip = mirsys(128,16);
@@ -103,13 +101,59 @@ bool Rsa::initRsaPublicKey(const unsigned char *crypted_sample)
 
       unsigned char tmp[64] = {0};
       this->DecryptBlock(crypted_sample, tmp);
-      if (memcmp(PaddingBytes, tmp, 31) == 0)
+      if (this->checkPadding(tmp))
 	{
 	  this->publicKeyInitialized = true;
 	  return true;
 	}
     }
   return false;
+}
+
+/*
+** This comment may be wrong, but that's how I understand things.
+**
+** All crypted data has a padding of the form 0x00 0x01 [a lot of 0xFF] 0x00.
+** th135 uses a fixed-width padding: the whole padding takes 32 bytes,
+** so we have 29 0xFF in the middle. The payload is at data+32.
+** th145 uses a variable-width padding: the payload is at the end,
+** the encryption code adds enough 0xFF to push the payload to the end.
+** The payload is at data+(64-data_size).
+** By using our payload pattern above, we should be able to support both formats.
+*/
+bool Rsa::skipPadding(const unsigned char *data, size_t& i)
+{
+  if (data[0] != 0 || data[1] != 1)
+    return false;
+  i = 2;
+  while (i < 63 && data[i] == 0xFF)
+    i++;
+  if (i < 31)
+    return false;
+  if (data[i] != 0)
+    return false;
+
+  i++;
+  return true;
+}
+
+bool Rsa::checkPadding(const unsigned char *data)
+{
+  size_t i;
+  return skipPadding(data, i);
+}
+
+bool Rsa::skipPaddingAndCopy(const unsigned char *src, unsigned char *dst, size_t size)
+{
+  size_t i;
+  if (!skipPadding(src, i))
+    return false;
+
+  if (64 - i < size)
+    return false;
+
+  memcpy(dst, src + i, size);
+  return true;
 }
 
 void Rsa::DecryptBlock(const unsigned char *src, unsigned char *dst)
@@ -145,11 +189,7 @@ bool Rsa::Decrypt6432(const unsigned char* src, unsigned char* dst, size_t dstLe
 
   unsigned char tmp[64] = {0};
   DecryptBlock(src, tmp);
-  if (memcmp(PaddingBytes, tmp, 31) != 0)
-    return false;
-  memcpy(dst, tmp + 0x40 - dstLen, dstLen);
-  // HM notes: the original th135arc has 31 instead of 32 in the memcmp, and uses tmp+0x20 in the memcpy.
-  return true;
+  return this->skipPaddingAndCopy(tmp, dst, dstLen);
 }
 
 bool Rsa::read(void *buffer, size_t size)

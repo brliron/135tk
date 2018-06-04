@@ -37,6 +37,15 @@ public:
   virtual uint32_t SpecialFNVHash(const char *path, uint32_t initHash = 0x811C9DC5u) = 0;
 };
 
+class FnList0 : public FnList
+{
+public:
+  FnList0() {}
+  ~FnList0() {}
+
+  uint32_t SpecialFNVHash(const char *path, uint32_t initHash = 0x811C9DC5u);
+};
+
 class FnList1 : public FnList
 {
 public:
@@ -61,6 +70,14 @@ public:
   FilesList() {}
   virtual ~FilesList() {}
   virtual bool read(Rsa& rsa, uint32_t fileCount, FnList& fnList) = 0;
+};
+
+class FilesList0 : public FilesList
+{
+public:
+  FilesList0() {}
+  ~FilesList0() {}
+  bool read(Rsa& rsa, uint32_t fileCount, FnList& fnList);
 };
 
 class FilesList1 : public FilesList

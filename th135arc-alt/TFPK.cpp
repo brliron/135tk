@@ -20,7 +20,11 @@ TFPK::~TFPK()
 
 TFPK0::TFPK0()
 {
-  // TODO: allocate everything when we support TFPK0
+  this->dirList = new DirList();
+  this->fnList = new FnList0();
+  this->fnList->readFromTextFile("fileslist.txt");
+  this->fnList->readFromJsonFile("fileslist.js");
+  this->filesList = new FilesList0();
 }
 
 TFPK1::TFPK1()
@@ -67,10 +71,13 @@ bool TFPK::parse_header(File& arc)
   return true;
 }
 
-bool TFPK0::check_version(uint8_t)
+bool TFPK0::check_version(uint8_t version)
 {
-  printf("Touhou 13.5 archives aren't supported yet.\n");
-  return false;
+  if (version != 0) {
+    printf("Version number must be 0 for TFPK0 archives.\n");
+    return false;
+  }
+  return true;
 }
 
 bool TFPK1::check_version(uint8_t version)
@@ -92,26 +99,40 @@ bool DirList::read(Rsa& rsa, uint32_t dirCount)
   return true;
 }
 
-uint32_t FnList1::SpecialFNVHash(const char *path, uint32_t initHash)
+uint32_t FnList0::SpecialFNVHash(const char *path, uint32_t initHash)
 {
   uint32_t hash; // eax@1
   uint32_t ch; // esi@2
 
-  //int inMBCS = 0;
-  for (hash = initHash; *path; hash = (hash ^ ch) * 0x1000193)
+  for (hash = initHash; *path; hash = ch ^ 0x1000193 * hash)
     {
       unsigned char c = *path++;
       ch = c;
-      //if (inMBCS == 0 && ((c >= 0x81u && c <= 0x9Fu) || (unsigned char)(c + 32) <= 0x1Fu))
-      //inMBCS = 2;
-      if (/*inMBCS == 0*/(c & 0x80) == 0)
+      if ((c & 0x80) == 0)
 	{
 	  ch = tolower(ch);
 	  if (ch == '/')
 	    ch = '\\';
 	}
-      //else
-      //inMBCS--;
+    }
+  return hash;
+}
+
+uint32_t FnList1::SpecialFNVHash(const char *path, uint32_t initHash)
+{
+  uint32_t hash; // eax@1
+  uint32_t ch; // esi@2
+
+  for (hash = initHash; *path; hash = (hash ^ ch) * 0x1000193)
+    {
+      unsigned char c = *path++;
+      ch = c;
+      if ((c & 0x80) == 0)
+	{
+	  ch = tolower(ch);
+	  if (ch == '/')
+	    ch = '\\';
+	}
     }
   return hash * -1;
 }
@@ -210,13 +231,9 @@ bool FnList::readFromArchive(Rsa& rsa, uint32_t dirCount)
     if (str[0] == '\0')
       break;
 
-    printf("File list: %s\n", str);
     this->add(UString::UString(str, UString::SHIFT_JIS));
-    pos += strlen(str);
+    pos += strlen(str) + 1;
   }
-
-  // TODO: parse fn list
-  //rsa.getFile().seek(fnHeader.blockCount * 64, File::Seek::CUR);
 
   delete[] compressedFnList;
   delete[] fnList;
@@ -233,6 +250,33 @@ UString::UString FnList::hashToFn(uint32_t hash)
   sprintf(fn, "unk_%08" PRIX32, hash);
 
   return UString::UString(fn);
+}
+
+bool FilesList0::read(Rsa& rsa, uint32_t fileCount, FnList& fnList)
+{
+#pragma pack(push, 1)
+  struct {
+    uint32_t FileSize;
+    uint32_t Offset;
+  } listItem;
+#pragma pack(pop)
+  uint32_t hash;
+
+  FilesList_Entry entry;
+
+  for (uint32_t i = 0; i < fileCount; i++) {
+    rsa.read((char*)&listItem, sizeof(listItem));
+    rsa.read((char*)&hash, sizeof(hash));
+    rsa.read((char*)entry.Key, sizeof(entry.Key));
+    entry.FileSize = listItem.FileSize;
+    entry.Offset = listItem.Offset;
+    entry.NameHash = hash;
+
+    entry.FileName = fnList.hashToFn(entry.NameHash);
+
+    this->push_back(entry);
+  }
+  return true;
 }
 
 bool FilesList1::read(Rsa& rsa, uint32_t fileCount, FnList& fnList)
@@ -286,9 +330,12 @@ bool TFPK::CreateDirectoryForPath(UString::UString fn)
   return true;
 }
 
-void TFPK0::UncryptBlock(unsigned char*, size_t, uint32_t*)
+void TFPK0::UncryptBlock(unsigned char *data, size_t size, uint32_t *Key)
 {
-  throw std::logic_error("TFPK0::UncryptBlock isn't implemented yet.");
+  uint8_t *key = (uint8_t*)Key;
+
+  for (size_t i = 0; i < size; i++)
+    data[i] ^= key[i % 16];
 }
 
 void TFPK1::UncryptBlock(unsigned char *data, size_t size, uint32_t *Key)
@@ -308,10 +355,6 @@ void TFPK1::UncryptBlock(unsigned char *data, size_t size, uint32_t *Key)
 
 const char *guess_extension(const unsigned char *bytes, size_t size)
 {
-  /*typedef bool (*compare_func)(const unsigned char *bytes, size_t size);
-  std::map<compare_func, const char*> extensions = {
-    { [](const unsigned char *bytes, size_t size) { return } }
-    };*/
   struct Magic
   {
     size_t size;
