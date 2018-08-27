@@ -58,7 +58,7 @@ void		read_str(FILE* fp, char* buffer, size_t size, json_t *js, const char *name
 
 void		read_bytes(FILE* fp, void* buffer_, size_t size, json_t *js, const char *name)
 {
-  char*		buffer = (char*)buffer_;
+  uint8_t*	buffer = (uint8_t*)buffer_;
   json_t	*rep = json_object_get(js, name);
   if (js && rep && json_is_string(rep))
     {
@@ -84,6 +84,7 @@ void		read_bytes(FILE* fp, void* buffer_, size_t size, json_t *js, const char *n
 	  sprintf(base64 + 2 * i, "%.2x", buffer[i]);
 	base64[2 * size] = '\0';
 	json_object_set_new(js, name, json_string(base64));
+	free(base64);
       }
     }
 }

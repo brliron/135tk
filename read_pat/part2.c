@@ -10,7 +10,7 @@ struct tfbm_header
 };
 #pragma pack(pop)
 
-static char* names[255] = { 0 };
+static char* names[4096] = { 0 };
 const char* img_idx_to_name(int idx)
 {
   if (idx >= 0 && names[idx])
