@@ -1,8 +1,14 @@
 git submodule init
 git submodule update
 
+cd th135arc-alt/MIRACL
+zip -r miracl.zip *
+unzip -j -aa -L -o miracl.zip
+bash linux
+cd ../..
+
 cd th145arc/MIRACL
-zip miracl.zip *
+zip -r miracl.zip *
 unzip -j -aa -L -o miracl.zip
 bash linux
 cd ../..

@@ -20,6 +20,7 @@ cp nhtextool/nhtextool.exe 135tk
 cp orig_135tk/* 135tk
 cp read_pat/read_pat.exe 135tk
 cp TFBMTool-alt/TFBMTool-alt.exe TFBMTool-alt/extractBM-alt.exe 135tk
+# cp th135arc-alt/th135arc-alt.exe 135tk
 cp th145arc/th145arc.exe th145arc/fileslist.txt 135tk
 
 # Copy dependencies
