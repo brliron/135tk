@@ -1,9 +1,19 @@
-#include <Windows.h>
-#include <getopt.h>
+#include <windows.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include "bmpfont_create.h"
+
+/*
+** Options for libraries:
+** - graphics_consume_option:
+**     --cp codepage: codepage to use when processing strings (defaults to CP_OEMCP).
+**                    It may or may not apply to options passed before it. In doubt, 
+**                    pass it before any text-based option.
+**
+** - graphics_consume_option_binary:
+**     none.
+*/
 
 typedef struct DCWrapper
 {
@@ -17,104 +27,23 @@ typedef struct DCWrapper
 
 typedef struct
 {
-  DCWrapper text;
-  DCWrapper outline;
-  DCWrapper target;
-  int       outline_size;
-  BYTE*     bmpData;
+  // Options parsing
+  unsigned int    cp;
+  const char     *font_name;
+  int             font_size;
+  const char    **font_files;
+  int             font_files_count;
+
+  DCWrapper       text;
+  DCWrapper       outline;
+  DCWrapper       target;
+  int             outline_size;
+  BYTE*           bmpData;
 } GdiGraphics;
 
-void graphics_help()
-{
-  printf("  --font-name font      Name of the font used to render the texts (required).\n"
-	 "  --font-size size      Font size (default: 32).\n"
-	 "  --outline-color R:G:B Outline color (default: 150:150:150).\n"
-	 "  --outline-size n      Outline size (default: 2, use 0 to remove outline).\n"
-	 "  --text-color R:G:B    Text color (default: 255:255:255).\n"
-	 );
-}
 
-DWORD parse_color(const char* color)
-{
-  int r;
-  int g;
-  int b;
 
-  r = strtol(color, (char**)&color, 0);
-  if (*color) color++;
-  g = strtol(color, (char**)&color, 0);
-  if (*color) color++;
-  b = strtol(color, (char**)&color, 0);
-  return RGB(r, g, b);
-}
-
-enum {
-  ARG_FONTNAME = 2,
-  ARG_FONTSIZE,
-  ARG_OUTLINE,
-  ARG_OUTLINESIZE,
-  ARG_TEXT,
-};
-int options(int ac, char* const* av, char** font_name, int* font_size, GdiGraphics *obj)
-{
-  struct option options[] = {
-    { "font-name",         required_argument, NULL, ARG_FONTNAME },
-    { "font-size",         required_argument, NULL, ARG_FONTSIZE },
-    { "outline-color",     required_argument, NULL, ARG_OUTLINE },
-    { "outline-size", required_argument, NULL, ARG_OUTLINESIZE },
-    { "text-color",        required_argument, NULL, ARG_TEXT },
-    { NULL,                0,                 NULL, 0 },
-  };
-  *font_name = NULL;
-  *font_size = 32;
-  obj->outline_size = 2;
-  obj->text.textColor = RGB(255, 255, 255);
-  obj->outline.textColor = RGB(150, 150, 150);
-
-  int idx;
-  while (1)
-    {
-      idx = getopt_long(ac, av, "-:", options, NULL);
-      switch (idx) {
-      case ARG_FONTNAME:
-	*font_name = optarg;
-	break;
-
-      case ARG_FONTSIZE:
-	*font_size = atoi(optarg);
-	break;
-
-      case ARG_OUTLINE:
-	obj->outline.textColor = parse_color(optarg);
-	break;
-
-      case ARG_OUTLINESIZE:
-	obj->outline_size = atoi(optarg);
-	break;
-
-      case ARG_TEXT:
-	obj->text.textColor = parse_color(optarg);
-	break;
-
-      case '?':
-	break;
-
-      case ':':
-	printf("Missing argument for one of the options\n");
-	return 0;
-
-      case -1:
-	if (!*font_name)
-	  {
-	    printf("--font-name is required\n\n");
-	    return 0;
-	  }
-	return 1;
-      }
-    }
-}
-
-void init_DCWrapper(DCWrapper* dc, HFONT hFont)
+void init_DCWrapper(DCWrapper *dc, HFONT hFont)
 {
   HDC hScreen   = GetDC(NULL);
   dc->hdc      = CreateCompatibleDC(hScreen);
@@ -123,39 +52,6 @@ void init_DCWrapper(DCWrapper* dc, HFONT hFont)
 
   dc->hFont = hFont;
   SetBkColor(dc->hdc, RGB(0, 0, 0));
-}
-
-void* graphics_init(int ac, char* const* av)
-{
-  GdiGraphics* obj = malloc(sizeof(GdiGraphics));
-  memset(obj, 0, sizeof(GdiGraphics));
-
-  char *font_name;
-  int font_size;
-  if (!options(ac, av, &font_name, &font_size, obj))
-    {
-      graphics_free(obj);
-      return NULL;
-    }
-
-  HFONT hTextFont    = CreateFontA(font_size, 0, 0, 0, FW_NORMAL, FALSE, FALSE, FALSE,
-				   ANSI_CHARSET, OUT_DEFAULT_PRECIS, CLIP_DEFAULT_PRECIS, ANTIALIASED_QUALITY,
-				   DEFAULT_PITCH | FF_DONTCARE, font_name);
-  HFONT hOutlineFont = CreateFontA(font_size, 0, 0, 0, FW_NORMAL, FALSE, FALSE, FALSE,
-				   ANSI_CHARSET, OUT_DEFAULT_PRECIS, CLIP_DEFAULT_PRECIS, ANTIALIASED_QUALITY,
-				   DEFAULT_PITCH | FF_DONTCARE, font_name);
-  if (hTextFont == NULL || hOutlineFont == NULL)
-    {
-      printf("Could not open font %s\n", font_name);
-      graphics_free(obj);
-      return NULL;
-    }
-
-  init_DCWrapper(&obj->text, hTextFont);
-  init_DCWrapper(&obj->outline, hOutlineFont);
-  init_DCWrapper(&obj->target, NULL);
-  obj->bmpData = malloc(256 * 256 * 4);
-  return obj;
 }
 
 void enter_DCWrapper(DCWrapper *dc)
@@ -191,9 +87,129 @@ void free_DCWrapper(DCWrapper *dc)
     DeleteDC(dc->hdc);
 }
 
-void graphics_free(void* obj_)
+
+
+wchar_t *to_unicode(GdiGraphics *obj, const char *src)
 {
-  GdiGraphics* obj = obj_;
+  wchar_t *dst = malloc((strlen(src) + 1) * sizeof(wchar_t));
+  MultiByteToWideChar(obj->cp, 0, src, -1, dst, strlen(src) + 1);
+  return dst;
+}
+
+
+
+void* graphics_init()
+{
+  GdiGraphics* obj = malloc(sizeof(GdiGraphics));
+  memset(obj, 0, sizeof(GdiGraphics));
+  obj->cp = CP_OEMCP;
+  obj->font_size = 32;
+  obj->outline_size = 2;
+  obj->text.textColor = RGB(255, 255, 255);
+  obj->outline.textColor = RGB(150, 150, 150);
+  obj->bmpData = malloc(256 * 256 * 4);
+  return obj;
+}
+
+static void help()
+{
+  printf("  --font-name font      Name of the font used to render the texts (required).\n"
+	 "  --font-file file      Font file to load before looking for a font.\n"
+	 "  --font-size size      Font size (default: 32).\n"
+	 "  --outline-color R:G:B Outline color (default: 150:150:150).\n"
+	 "  --outline-size n      Outline size (default: 2, use 0 to remove outline).\n"
+	 "  --text-color R:G:B    Text color (default: 255:255:255).\n"
+	 );
+}
+
+static DWORD parse_color(const char *color)
+{
+  int r;
+  int g;
+  int b;
+
+  r = strtol(color, (char**)&color, 0);
+  if (*color) color++;
+  g = strtol(color, (char**)&color, 0);
+  if (*color) color++;
+  b = strtol(color, (char**)&color, 0);
+  return RGB(r, g, b);
+}
+
+static int init_2(GdiGraphics *obj);
+int graphics_consume_option(void *obj_, const char *name, const char *value)
+{
+  GdiGraphics *obj = obj_;
+
+  if (name == NULL)
+    return init_2(obj);
+  else if (strcmp(name, "--font-name") == 0)
+    obj->font_name = value;
+  else if (strcmp(name, "--font-size") == 0)
+    obj->font_size = atoi(value);
+  else if (strcmp(name, "--font-file") == 0)
+    {
+      LPWSTR wValue = to_unicode(obj, value);
+      if (AddFontResourceExW(wValue, FR_PRIVATE, 0) == 0)
+	{
+	  fprintf(stderr, "Error: could not add font from %s\n", value);
+	  free(wValue);
+	  return 0;
+	}
+      free(wValue);
+      obj->font_files_count++;
+      obj->font_files = realloc(obj->font_files, obj->font_files_count * sizeof(char*));
+      obj->font_files[obj->font_files_count - 1] = value;
+    }
+  else if (strcmp(name, "--outline-color") == 0)
+    obj->outline.textColor = parse_color(value);
+  else if (strcmp(name, "--outline-size") == 0)
+    obj->outline_size = atoi(value);
+  else if (strcmp(name, "--text-color") == 0)
+    obj->text.textColor = parse_color(value);
+  else if (strcmp(name, "--cp") == 0)
+    obj->cp = atoi(value);
+  else if (strcmp(name, "--help") == 0)
+    help();
+  else
+    {
+      fprintf(stderr, "Unrecognized option '%s'\n", name);
+      return 0;
+    }
+  return 1;
+}
+
+static int init_2(GdiGraphics *obj)
+{
+  if (!obj->font_name)
+    {
+      printf("--font-name is required\n\n");
+      return 0;
+    }
+
+  LPWSTR font_name   = to_unicode(obj, obj->font_name);
+  HFONT hTextFont    = CreateFontW(obj->font_size, 0, 0, 0, FW_NORMAL, FALSE, FALSE, FALSE,
+				   ANSI_CHARSET, OUT_DEFAULT_PRECIS, CLIP_DEFAULT_PRECIS, ANTIALIASED_QUALITY,
+				   DEFAULT_PITCH | FF_DONTCARE, font_name);
+  HFONT hOutlineFont = CreateFontW(obj->font_size, 0, 0, 0, FW_NORMAL, FALSE, FALSE, FALSE,
+				   ANSI_CHARSET, OUT_DEFAULT_PRECIS, CLIP_DEFAULT_PRECIS, ANTIALIASED_QUALITY,
+				   DEFAULT_PITCH | FF_DONTCARE, font_name);
+  free(font_name);
+  if (hTextFont == NULL || hOutlineFont == NULL)
+    {
+      printf("Could not open font %s\n", obj->font_name);
+      return 0;
+    }
+
+  init_DCWrapper(&obj->text, hTextFont);
+  init_DCWrapper(&obj->outline, hOutlineFont);
+  init_DCWrapper(&obj->target, NULL);
+  return 1;
+}
+
+void graphics_free(void *obj_)
+{
+  GdiGraphics *obj = obj_;
 
   if (!obj)
     return ;
@@ -202,16 +218,24 @@ void graphics_free(void* obj_)
   free_DCWrapper(&obj->outline);
   free_DCWrapper(&obj->target);
 
+  for (int i = 0; i < obj->font_files_count; i++)
+    {
+      LPWSTR wFontFile = to_unicode(obj, obj->font_files[i]);
+      RemoveFontResourceExW(wFontFile, FR_PRIVATE, 0);
+      free(wFontFile);
+    }
+  free(obj->font_files);
+
   free(obj->bmpData);
   free(obj);
 }
 
 
-void graphics_put_char(void* obj_, WCHAR c, BYTE** dest, int* w, int* h)
+void graphics_put_char(void *obj_, WCHAR c, BYTE **dest, int *w, int *h)
 {
-  GdiGraphics* obj = obj_;
+  GdiGraphics *obj = obj_;
 
-  DCWrapper* dc;
+  DCWrapper *dc;
   RECT rect;
 
   if (obj->outline_size)
