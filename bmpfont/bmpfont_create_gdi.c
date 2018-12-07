@@ -37,7 +37,7 @@ typedef struct
   DCWrapper       text;
   DCWrapper       outline;
   DCWrapper       target;
-  int             outline_size;
+  int             outline_width;
   BYTE*           bmpData;
 } GdiGraphics;
 
@@ -104,7 +104,7 @@ void* graphics_init()
   memset(obj, 0, sizeof(GdiGraphics));
   obj->cp = CP_OEMCP;
   obj->font_size = 32;
-  obj->outline_size = 2;
+  obj->outline_width = 2;
   obj->text.textColor = RGB(255, 255, 255);
   obj->outline.textColor = RGB(150, 150, 150);
   obj->bmpData = malloc(256 * 256 * 4);
@@ -117,7 +117,7 @@ static void help()
 	 "  --font-file file      Font file to load before looking for a font.\n"
 	 "  --font-size size      Font size (default: 32).\n"
 	 "  --outline-color R:G:B Outline color (default: 150:150:150).\n"
-	 "  --outline-size n      Outline size (default: 2, use 0 to remove outline).\n"
+	 "  --outline-width n     Outline size (default: 2, use 0 to remove outline).\n"
 	 "  --text-color R:G:B    Text color (default: 255:255:255).\n"
 	 );
 }
@@ -163,8 +163,8 @@ int graphics_consume_option(void *obj_, const char *name, const char *value)
     }
   else if (strcmp(name, "--outline-color") == 0)
     obj->outline.textColor = parse_color(value);
-  else if (strcmp(name, "--outline-size") == 0)
-    obj->outline_size = atoi(value);
+  else if (strcmp(name, "--outline-width") == 0)
+    obj->outline_width = atoi(value);
   else if (strcmp(name, "--text-color") == 0)
     obj->text.textColor = parse_color(value);
   else if (strcmp(name, "--cp") == 0)
@@ -238,7 +238,7 @@ void graphics_put_char(void *obj_, WCHAR c, BYTE **dest, int *w, int *h)
   DCWrapper *dc;
   RECT rect;
 
-  if (obj->outline_size)
+  if (obj->outline_width)
     {
       enter_DCWrapper(&obj->outline);
       enter_DCWrapper(&obj->text);
@@ -255,20 +255,20 @@ void graphics_put_char(void *obj_, WCHAR c, BYTE **dest, int *w, int *h)
       // Next, blit the outline.
       StretchBlt(obj->target.hdc,
 		 rect.left, rect.top,
-		 rect.right  - rect.left + obj->outline_size * 2,
-		 rect.bottom - rect.top  + obj->outline_size * 2,
+		 rect.right  - rect.left + obj->outline_width * 2,
+		 rect.bottom - rect.top  + obj->outline_width * 2,
 		 obj->outline.hdc, rect.left, rect.top, rect.right - rect.left, rect.bottom - rect.top,
 		 SRCCOPY);
 
       // Finally, blit the text.
       StretchBlt(obj->target.hdc,
-		 rect.left + obj->outline_size, rect.top + obj->outline_size,
+		 rect.left + obj->outline_width, rect.top + obj->outline_width,
 		 rect.right - rect.left, rect.bottom - rect.top,
 		 obj->text.hdc, rect.left, rect.top, rect.right - rect.left, rect.bottom - rect.top,
 		 SRCPAINT);
 
-      rect.right  += obj->outline_size * 2;
-      rect.bottom += obj->outline_size * 2;
+      rect.right  += obj->outline_width * 2;
+      rect.bottom += obj->outline_width * 2;
       leave_DCWrapper(&obj->outline);
       leave_DCWrapper(&obj->text);
       dc = &obj->target;
