@@ -33,6 +33,8 @@ typedef struct
   int             font_size;
   const char    **font_files;
   int             font_files_count;
+  HANDLE         *font_mem;
+  int             font_mem_count;
 
   DCWrapper       text;
   DCWrapper       outline;
@@ -179,6 +181,31 @@ int graphics_consume_option(void *obj_, const char *name, const char *value)
   return 1;
 }
 
+int graphics_consume_option_binary(void *obj_, const char *name, void *value, size_t value_size)
+{
+  GdiGraphics *obj = obj_;
+
+  if (strcmp(name, "--font-mem") == 0)
+    {
+      DWORD nb_fonts;
+      HANDLE hFont = AddFontMemResourceEx(value, value_size, 0, &nb_fonts);
+      if (hFont == 0)
+	{
+	  fprintf(stderr, "Error: could not add font from memory\n");
+	  return 0;
+	}
+      obj->font_mem_count++;
+      obj->font_mem = realloc(obj->font_mem, obj->font_mem_count * sizeof(HANDLE));
+      obj->font_mem[obj->font_mem_count - 1] = hFont;
+    }
+  else
+    {
+      fprintf(stderr, "Unrecognized binary option '%s'\n", name);
+      return 0;
+    }
+  return 1;
+}
+
 static int init_2(GdiGraphics *obj)
 {
   if (!obj->font_name)
@@ -225,6 +252,9 @@ void graphics_free(void *obj_)
       free(wFontFile);
     }
   free(obj->font_files);
+  for (int i = 0; i < obj->font_mem_count; i++)
+    RemoveFontMemResourceEx(obj->font_mem[i]);
+  free(obj->font_mem);
 
   free(obj->bmpData);
   free(obj);
