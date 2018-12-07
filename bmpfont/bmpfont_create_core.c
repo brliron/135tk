@@ -608,6 +608,8 @@ int bmpfont_run(void *bmpfont)
 
 void bmpfont_free(void *bmpfont)
 {
+  if (!bmpfont)
+    return ;
   State *state = (State*)bmpfont;
   if (state->out_mem)
     free(*state->out_mem);
