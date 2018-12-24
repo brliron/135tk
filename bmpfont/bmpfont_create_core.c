@@ -26,6 +26,13 @@ typedef enum
     INVALID_FORMAT
   } OutputType;
 
+typedef enum
+  {
+    ROTATE_0,
+    ROTATE_90,
+    ROTATE_180,
+    ROTATE_270
+  } RotateType;
 #pragma pack(push, 1)
 typedef struct
 {
@@ -61,16 +68,43 @@ typedef struct
   char         chars_list[65536];
   int          chars_count;
   OutputType   output_type;
+  RotateType   rotate_type;
   int          export_png;
   const char  *out_fn;
   BYTE       **out_mem;
   size_t      *out_size;
 } State;
 
+void rotate(int *x, int *y, int w, int h, RotateType rotateType)
+{
+  int old_x = *x;
+  int old_y = *y;
+
+  switch (rotateType)
+    {
+    case ROTATE_0:
+      return ;
+    case ROTATE_90:
+      *x = old_y;
+      *y = h - old_x - 1;
+      return ;
+    case ROTATE_180:
+      *x = w - old_x - 1;
+      *y = h - old_y - 1;
+      return ;
+    case ROTATE_270:
+      *x = w - old_y - 1;
+      *y = old_x;
+      return ;
+    }
+}
+
 int put_char(State *state, WCHAR c, BYTE** dest, CharDetail* charDetail)
 {
   int w;
   int h;
+  int w_r;
+  int h_r;
   BYTE  *buffer =      (BYTE*) malloc(256 * 256 * 4);
   BYTE **buffer_rows = (BYTE**)malloc(256 * sizeof(BYTE*));
   memset(buffer, 0, 256 * 256 * 4);
@@ -82,37 +116,51 @@ int put_char(State *state, WCHAR c, BYTE** dest, CharDetail* charDetail)
   if (c == L' ')
     w += 8;
 
-  if (state->x + w >= state->w)
+  if (state->rotate_type == ROTATE_90 || state->rotate_type == ROTATE_270)
+    {
+      w_r = h;
+      h_r = w;
+    }
+  else
+    {
+      w_r = w;
+      h_r = h;
+    }
+
+  if (state->x + w_r >= state->w)
     {
       free(buffer);
       free(buffer_rows);
       return 0;
     }
-  if (w > (int)state->char_w)
-    state->char_w = w;
-  if (h > (int)state->line_h)
-    state->line_h = h;
+  if (w_r > (int)state->char_w)
+    state->char_w = w_r;
+  if (h_r > (int)state->line_h)
+    state->line_h = h_r;
 
   int x;
   int y;
-  for (x = 0; x < w; x++)
-    for (y = 0; y < h; y++) {
+  for (x = 0; x < w_r; x++)
+    for (y = 0; y < h_r; y++) {
       int x2 = (state->x + x) * 4 + state->channel;
       int y2 = state->y + y;
+      int x_r = x;
+      int y_r = y;
+      rotate(&x_r, &y_r, w, h, state->rotate_type);
       switch (state->output_type)
 	{
 	case UNPACKED_RGBA:
-	  dest[y2][x2 + 0] = buffer_rows[y][x * 4 + 0];
-	  dest[y2][x2 + 1] = buffer_rows[y][x * 4 + 1];
-	  dest[y2][x2 + 2] = buffer_rows[y][x * 4 + 2];
-	  dest[y2][x2 + 3] = buffer_rows[y][x * 4 + 3];
+	  dest[y2][x2 + 0] = buffer_rows[y_r][x_r * 4 + 0];
+	  dest[y2][x2 + 1] = buffer_rows[y_r][x_r * 4 + 1];
+	  dest[y2][x2 + 2] = buffer_rows[y_r][x_r * 4 + 2];
+	  dest[y2][x2 + 3] = buffer_rows[y_r][x_r * 4 + 3];
 	  break;
 	case UNPACKED_GRAYSCALE:
-	  dest[y2][state->x + x] = buffer_rows[y][x * 4];
+	  dest[y2][state->x + x] = buffer_rows[y_r][x_r * 4];
 	  break;
 	case PACKED_RGBA:
 	case PACKED_GRAYSCALE:
-	  dest[y2][x2] = buffer_rows[y][x * 4];
+	  dest[y2][x2] = buffer_rows[y_r][x_r * 4];
 	  break;
 	case INVALID_FORMAT:
 	  break;
@@ -121,8 +169,8 @@ int put_char(State *state, WCHAR c, BYTE** dest, CharDetail* charDetail)
 
   charDetail->x        = state->x;
   charDetail->y        = state->y;
-  charDetail->width    = w;
-  charDetail->height   = h;
+  charDetail->width    = w_r;
+  charDetail->height   = h_r;
   charDetail->y_offset = 0;
   charDetail->channel  = state->channel;
 
@@ -202,6 +250,8 @@ void usage(State *state)
 	 "  --out output_file Output file name (required).\n"
 	 "  --plugin plugin   Plugin to be used to render the texts (required).\n"
 	 "  --png true        Exports the file as png (requires --format packed_grayscale).\n"
+	 "  --rotate angle    Rotate the characters.\n"
+	 "                    Angle can be 0, 90, 180 or 270.\n"
 	 , state->exe);
   if (state->func.consume_option)
     {
@@ -290,6 +340,22 @@ int bmpfont_add_option(void *bmpfont, const char *name, const char *value)
     state->out_fn = value;
   else if (strcmp(name, "--png") == 0)
     state->export_png = 1;
+  else if (strcmp(name, "--rotate") == 0)
+    {
+      if      (strcmp(value, "0") == 0)
+        state->rotate_type = ROTATE_0;
+      else if (strcmp(value, "90") == 0)
+        state->rotate_type = ROTATE_90;
+      else if (strcmp(value, "180") == 0)
+        state->rotate_type = ROTATE_180;
+      else if (strcmp(value, "270") == 0)
+        state->rotate_type = ROTATE_270;
+      else
+        {
+          printf("%s: unknown angle %s\n", state->exe, value);
+          return 0;
+        }
+    }
   else
     {
       if (!state->func.consume_option)
@@ -328,9 +394,10 @@ int bmpfont_add_option_binary(void *bmpfont, const char *name, void *value, size
         }
       state->out_size = (size_t*)value;
     }
-  else if (strcmp(name, "--out-size") == 0)
+  else if (strcmp(name, "--chars-list") == 0)
     {
       char *chars_list = (char*)value;
+      memset(state->chars_list, 0, 65535);
       for (uint16_t i = 0; i < 65535 && i < value_size; i++)
 	state->chars_list[i] = chars_list[i];
     }

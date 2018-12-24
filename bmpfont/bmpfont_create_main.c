@@ -4,6 +4,9 @@
 #include <string.h>
 #include "bmpfont_create.h"
 
+// For debugging
+//#define LATIN_ONLY
+
 int options(void *bmpfont, int ac, char **av)
 {
   // --exe defaults to bmpfont. I think it's a good value for libraries,
@@ -43,6 +46,12 @@ int main(int ac, char **av)
   void *bmpfont = bmpfont_init();
   if (!options(bmpfont, ac, av))
     return 1;
+#ifdef LATIN_ONLY
+// Debug - generate only 256 characters.
+  char chars_list[256];
+  memset(chars_list, 1, 256);
+  bmpfont_add_option_binary(bmpfont, "--chars-list", chars_list, 256);
+#endif
   bmpfont_run(bmpfont);
   bmpfont_free(bmpfont);
   return 0;
