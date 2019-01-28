@@ -12,7 +12,9 @@
 **                    pass it before any text-based option.
 **
 ** - graphics_consume_option_binary:
-**     none.
+**      --font-memory: like --font-file, but loads a font file from memory.
+**                     value points to the in-memory file, and
+**                     value_size is the size of the in-memory file.
 */
 
 typedef struct DCWrapper
@@ -160,7 +162,7 @@ int graphics_consume_option(void *obj_, const char *name, const char *value)
 	}
       free(wValue);
       obj->font_files_count++;
-      obj->font_files = realloc(obj->font_files, obj->font_files_count * sizeof(char*));
+      obj->font_files = realloc((void*)obj->font_files, obj->font_files_count * sizeof(char*));
       obj->font_files[obj->font_files_count - 1] = value;
     }
   else if (strcmp(name, "--outline-color") == 0)
@@ -185,7 +187,7 @@ int graphics_consume_option_binary(void *obj_, const char *name, void *value, si
 {
   GdiGraphics *obj = obj_;
 
-  if (strcmp(name, "--font-mem") == 0)
+  if (strcmp(name, "--font-memory") == 0)
     {
       DWORD nb_fonts;
       HANDLE hFont = AddFontMemResourceEx(value, value_size, 0, &nb_fonts);
@@ -251,7 +253,7 @@ void graphics_free(void *obj_)
       RemoveFontResourceExW(wFontFile, FR_PRIVATE, 0);
       free(wFontFile);
     }
-  free(obj->font_files);
+  free((void*)obj->font_files);
   for (int i = 0; i < obj->font_mem_count; i++)
     RemoveFontMemResourceEx(obj->font_mem[i]);
   free(obj->font_mem);

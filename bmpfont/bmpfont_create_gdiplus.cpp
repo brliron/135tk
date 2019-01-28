@@ -192,6 +192,7 @@ int graphics_consume_option_binary(void *obj_, const char *name, void *value, si
 	  fprintf(stderr, "AddMemoryFont failed: %d\n", status);
 	  return 0;
 	}
+      obj->useFontCollection = true;
     }
   else
     {

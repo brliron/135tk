@@ -229,6 +229,7 @@ void *bmpfont_init()
 {
   State *bmpfont = malloc(sizeof(State));
   memset(bmpfont, 0, sizeof(State));
+  bmpfont->out_mem = NULL;
   bmpfont->exe = "bmpfont";
   bmpfont->output_type = INVALID_FORMAT;
   for (uint16_t c = 0; c < 65535; c++)
@@ -384,6 +385,7 @@ int bmpfont_add_option_binary(void *bmpfont, const char *name, void *value, size
           return 0;
         }
       state->out_mem = (BYTE**)value;
+      *state->out_mem = NULL;
     }
   else if (strcmp(name, "--out-size") == 0)
     {
@@ -426,7 +428,7 @@ int check_state(State *state)
     printf("--out is required\n\n"); // If using as a library, --out-mem can be used instead
   if (!state->func.init)
     printf("--plugin is required\n\n");
-  if (state->output_type == INVALID_FORMAT || !state->out_fn || !state->func.init)
+  if (state->output_type == INVALID_FORMAT || (!state->out_fn && !state->out_mem) || !state->func.init)
     {
       usage(state);
       return 0;
@@ -511,6 +513,9 @@ static void fill_bmp_headers(State *state, BITMAPFILEHEADER *header, BITMAPINFOH
   int palette_size;
   int bitmap_size;
 
+  if (state->output_type == PACKED_GRAYSCALE)
+    state->w *= 4;
+
   if (state->output_type == UNPACKED_RGBA || state->output_type == PACKED_RGBA)
     {
       bpp = 32;
@@ -523,9 +528,6 @@ static void fill_bmp_headers(State *state, BITMAPFILEHEADER *header, BITMAPINFOH
       palette_size = 256 * 4;
       bitmap_size = state->w * state->h;
     }
-
-  if (state->output_type == PACKED_GRAYSCALE)
-    state->w *= 4;
 
   header->bfType = 'B' | ('M' << 8);
   header->bfSize = sizeof(BITMAPFILEHEADER) + sizeof(BITMAPINFOHEADER) + palette_size + bitmap_size;
@@ -670,7 +672,7 @@ int bmpfont_run(void *bmpfont)
   free(rows);
   free(data);
 
-  return 0;
+  return 1;
 }
 
 void bmpfont_free(void *bmpfont)
@@ -678,7 +680,7 @@ void bmpfont_free(void *bmpfont)
   if (!bmpfont)
     return ;
   State *state = (State*)bmpfont;
-  if (state->out_mem)
+  if (state->out_mem && *state->out_mem)
     free(*state->out_mem);
   free(state);
 }
