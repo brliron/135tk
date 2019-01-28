@@ -16,8 +16,11 @@ void *graphics_init();
 
 // Called for every plugin-specific argument.
 // Return 1 if you handled the argument correctly, or 0 if you have an error.
-// If name is "--help", you should ignore value, list the arguments you recognize, and return 0.
-// If name is NULL, you won't receive any more options. Return 0 if you miss some require option
+// You need to support at least "--help", "--cp" and NULL.
+// If name is "--help", you should ignore the 'value' parameter, list the arguments you recognize, and return 0.
+// If name is "--cp", value contains the code page in which you will recieve other options.
+//   If you think you will only receive ASCII options, ignore it and return 1.
+// If name is NULL, you won't receive any more options. Return 0 if you miss some required options
 // at this point.
 // You should be displaying error messages, the caller won't do it.
 int graphics_consume_option(void *obj, const char *name, const char *value);

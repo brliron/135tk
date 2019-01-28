@@ -6,11 +6,6 @@
 
 /*
 ** Options for libraries:
-** - graphics_consume_option:
-**     --cp codepage: codepage to use when processing strings (defaults to CP_OEMCP).
-**                    It may or may not apply to options passed before it. In doubt, 
-**                    pass it before any text-based option.
-**
 ** - graphics_consume_option_binary:
 **      --font-memory: like --font-file, but loads a font file from memory.
 **                     value points to the in-memory file, and

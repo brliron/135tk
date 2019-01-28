@@ -65,6 +65,7 @@ typedef struct
   void        *graphics;
   HMODULE      hMod;
   const char  *exe;
+  unsigned int cp;
   char         chars_list[65536];
   int          chars_count;
   OutputType   output_type;
@@ -74,6 +75,13 @@ typedef struct
   BYTE       **out_mem;
   size_t      *out_size;
 } State;
+
+wchar_t *to_unicode(State *state, const char *src)
+{
+  wchar_t *dst = malloc((strlen(src) + 1) * sizeof(wchar_t));
+  MultiByteToWideChar(state->cp, 0, src, -1, dst, strlen(src) + 1);
+  return dst;
+}
 
 void rotate(int *x, int *y, int w, int h, RotateType rotateType)
 {
@@ -231,6 +239,7 @@ void *bmpfont_init()
   memset(bmpfont, 0, sizeof(State));
   bmpfont->out_mem = NULL;
   bmpfont->exe = "bmpfont";
+  bmpfont->cp = CP_OEMCP;
   bmpfont->output_type = INVALID_FORMAT;
   for (uint16_t c = 0; c < 65535; c++)
     bmpfont->chars_list[c] = 1;
@@ -241,6 +250,9 @@ void usage(State *state)
 {
   printf("Usage: %s option...\n"
 	 "  --help            Display this help message.\n"
+	 "  --cp codepage     Codepage to use when processing strings (defaults to CP_OEMCP).\n"
+	 "                    It may or may not apply to options passed before it. In doubt,\n"
+	 "                    pass it before any text-based option.\n"
 	 "  --format format   unpacked_rgba, packed_rgba, unpacked_grayscale\n"
          "                    or packed_grayscale.\n"
 	 "                    unpacked_rgba and unpacked_grayscale can be opened\n"
@@ -265,7 +277,9 @@ void usage(State *state)
 
 int init_plugin(State *state, const char* fn)
 {
-  state->hMod = LoadLibrary(fn);
+  LPWSTR fn_w = to_unicode(state, fn);
+  state->hMod = LoadLibraryW(fn_w);
+  free(fn_w);
   if (!state->hMod)
     {
       printf("%s: can't open plugin %s\n", state->exe, fn);
@@ -316,9 +330,19 @@ int bmpfont_add_option(void *bmpfont, const char *name, const char *value)
       usage(state);
       return 0;
     }
+  else if (strcmp(name, "--cp") == 0)
+    {
+      state->cp = atoi(value);
+      if (state->func.consume_option && !state->func.consume_option(state->graphics, name, value))
+	return 0;
+    }
   else if (strcmp(name, "--plugin") == 0)
     {
       if (!init_plugin(state, value))
+	return 0;
+      char cp[11];
+      sprintf(cp, "%u", state->cp);
+      if (state->func.consume_option && !state->func.consume_option(state->graphics, "--cp", cp))
 	return 0;
     }
   else if (strcmp(name, "--format") == 0)
