@@ -67,7 +67,6 @@ typedef struct
   const char  *exe;
   unsigned int cp;
   char         chars_list[65536];
-  int          chars_count;
   OutputType   output_type;
   RotateType   rotate_type;
   int          export_png;
@@ -522,7 +521,6 @@ static void make_bmpfont(State *state, BYTE **pData, BYTE ***pRows, CharDetail *
 	  state->char_w = 0;
 	  state->channel = 0;
 	}
-      state->chars_count++;
     }
 
   state->h = state->y + state->line_h;
@@ -579,29 +577,70 @@ int bmpfont_run(void *bmpfont)
   if (!check_state(state))
     return 0;
 
+  // Paint the font to a bitmap
   BYTE        *data;
   BYTE       **rows;
   CharDetail  *charDetails;
   make_bmpfont(state, &data, &rows, &charDetails);
   state->func.free(state->graphics);
 
+  // Generate metadatas
+  char *metadata = NULL;
+  size_t metadata_size = 0;
+  if (state->output_type == PACKED_RGBA || state->output_type == PACKED_GRAYSCALE)
+    {
+      // Maximum size, we may need less than that.
+      metadata = malloc(2 * sizeof(uint16_t) + 65536 * (sizeof(uint16_t) + sizeof(CharDetail)));
+      char *metadata_ptr = metadata;
+
+      // I don't know what is that, so I take the bytes in spell_font.bmp for now.
+      uint16_t unk = 0x0215;
+      memcpy(metadata_ptr, &unk, 2);
+      metadata_ptr += 2;
+
+      // Skip nb_chars for now - we will count them while we copy them.
+      uint16_t nb_chars = 0;
+      metadata_ptr += 2;
+
+      for (uint16_t c = 0; c < 65535; c++) {
+          if (state->chars_list[c]) {
+              memcpy(metadata_ptr, &c, 2);
+              metadata_ptr += 2;
+	      nb_chars++;
+          }
+      }
+      for (uint16_t c = 0; c < 65535; c++) {
+          if (state->chars_list[c]) {
+              memcpy(metadata_ptr, &charDetails[c], sizeof(CharDetail));
+              metadata_ptr += sizeof(CharDetail);
+          }
+      }
+
+      // We now have nb_chars, write it.
+      memcpy(metadata + 2, &nb_chars, 2);
+
+      metadata_size = metadata_ptr - metadata;
+    }
+
+  // Generate the BMP file headers
   BITMAPFILEHEADER header;
   BITMAPINFOHEADER info;
   fill_bmp_headers(state, &header, &info);
 
+  // Allocate the output buffer
   size_t output_size = header.bfSize;
   if (state->output_type == PACKED_RGBA || state->output_type == PACKED_GRAYSCALE)
-    output_size += 4 + state->chars_count * (2 + sizeof(CharDetail));
+    output_size += metadata_size;
   BYTE  *output = malloc(output_size);
   BYTE  *output_ptr = output;
 
-  // Header
+  // Write the header
   memcpy(output_ptr, &header, sizeof(header));
   output_ptr += sizeof(header);
   memcpy(output_ptr, &info, sizeof(info));
   output_ptr += sizeof(info);
 
-  // Palette
+  // Write the palette
   if (state->output_type == UNPACKED_GRAYSCALE || state->output_type == PACKED_GRAYSCALE)
     {
       uint8_t c = 0;
@@ -616,7 +655,7 @@ int bmpfont_run(void *bmpfont)
 	} while (c != 0);
     }
 
-  // Bitmap
+  // Write the bitmap
   int line;
   for (line = state->h - 1; line >= 0; line--)
     {
@@ -624,29 +663,14 @@ int bmpfont_run(void *bmpfont)
       output_ptr += state->w * info.biBitCount / 8;
     }
 
-  // Metadatas
+  // Write the metadatas
   if (state->output_type == PACKED_RGBA || state->output_type == PACKED_GRAYSCALE)
     {
-      uint16_t unk = 0x0215; // I don't know what is that, so I take the bytes in spell_font.bmp for now.
-      uint16_t nb_chars = state->chars_count;
-      memcpy(output_ptr,     &unk, 2);
-      memcpy(output_ptr + 2, &nb_chars, 2);
-      output_ptr += 4;
-      for (uint16_t c = 0; c < 65535; c++) {
-          if (state->chars_list[c]) {
-              memcpy(output_ptr, &c, 2);
-              output_ptr += 2;
-          }
-      }
-      for (uint16_t c = 0; c < 65535; c++) {
-          if (state->chars_list[c]) {
-              memcpy(output_ptr, &charDetails[c], sizeof(CharDetail));
-              output_ptr += sizeof(CharDetail);
-          }
-      }
+      memcpy(output_ptr, metadata, metadata_size);
+      output_ptr += metadata_size;
     }
 
-  // File output
+  // Write the output buffer to the file
   if (state->out_fn)
     {
       FILE *fout = fopen(state->out_fn, "wb");
@@ -679,10 +703,13 @@ int bmpfont_run(void *bmpfont)
       FILE *fout = fopen(path_bin, "wb");
       if (fout == NULL)
 	perror(path_bin);
-      fwrite(output + header.bfSize, output_size - header.bfSize, 1, fout);
+      fwrite(metadata, metadata_size, 1, fout);
       fclose(fout);
       free(path_bin);
     }
+
+  if (metadata)
+    free(metadata);
 
   if (state->out_mem)
     *state->out_mem = output;
