@@ -22,7 +22,7 @@ int main(int ac, char **av)
 	  printf("Could not open %s: %s\n", fn.c_str(), file.error());
 	  return 1;
 	}
-      TFPK *arc = TFPK::read(file);
+      std::unique_ptr<TFPK> arc = TFPK::read(file);
       if (!arc)
 	return 1;
       size_t ext = fn.rfind(".");
@@ -31,15 +31,13 @@ int main(int ac, char **av)
       else
 	fn += "_extracted";
       arc->extract_all(file, fn);
-      delete arc;
     }
   else if (av[1][1] == 'p')
     {
-      TFPK *arc = new TFPK1();
+      std::unique_ptr<TFPK> arc = std::make_unique<TFPK1>();
       UString::UString pak_fn = fn + ".pak";
       File file(pak_fn, File::WRITE | File::TRUNCATE);
       arc->repack_all(file, fn);
-      delete arc;
     }
   else
     printf("Error: unknown parameter %s\n", av[1]);

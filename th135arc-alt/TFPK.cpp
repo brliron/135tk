@@ -11,28 +11,22 @@
 #include "TFPK.hpp"
 
 TFPK::~TFPK()
-{
-  delete this->dirList;
-  delete this->fnList;
-  delete this->filesList;
-}
+{}
 
 TFPK0::TFPK0()
 {
-  this->dirList = new DirList();
-  this->fnList = new FnList0();
+  this->fnList = std::make_unique<FnList0>();
   this->fnList->readFromTextFile("fileslist.txt");
   this->fnList->readFromJsonFile("fileslist.js");
-  this->filesList = new FilesList0();
+  this->filesList = std::make_unique<FilesList0>();
 }
 
 TFPK1::TFPK1()
 {
-  this->dirList = new DirList();
-  this->fnList = new FnList1();
+  this->fnList = std::make_unique<FnList1>();
   this->fnList->readFromTextFile("fileslist.txt");
   this->fnList->readFromJsonFile("fileslist.js");
-  this->filesList = new FilesList1();
+  this->filesList = std::make_unique<FilesList1>();
 }
 
 bool TFPK::parse_header(File& arc)
@@ -55,7 +49,7 @@ bool TFPK::parse_header(File& arc)
     printf("Error: unknown RSA key!\n");
     return false;
   }
-  if (this->dirList->read(rsa, dirCount) == false)
+  if (this->dirList.read(rsa, dirCount) == false)
     return false;
   if (this->fnList->readFromArchive(rsa, dirCount) == false)
     return false;
@@ -247,7 +241,7 @@ bool TFPK::repack_all(File&, UString::UString)
   return false;
 }
 
-TFPK *TFPK::read(File& arc)
+std::unique_ptr<TFPK> TFPK::read(File& arc)
 {
   char magic[4];
   arc.read(magic, 4);
@@ -257,11 +251,11 @@ TFPK *TFPK::read(File& arc)
   }
 
   uint8_t version = arc.readByte();
-  TFPK *tfpk;
+  std::unique_ptr<TFPK> tfpk;
   if (version == 0)
-    tfpk = new TFPK0();
+    tfpk = std::make_unique<TFPK0>();
   else if (version == 1)
-    tfpk = new TFPK1();
+    tfpk = std::make_unique<TFPK1>();
   else {
     printf("Error: this tool works only with the archives from the following games:\n"
 	   "  Touhou 13.5\n"
@@ -272,9 +266,8 @@ TFPK *TFPK::read(File& arc)
   }
 
   arc.seek(0, File::Seek::SET);
-  if (!tfpk->parse_header(arc)) {
-    delete tfpk;
+  if (!tfpk->parse_header(arc))
     return nullptr;
-  }
+
   return tfpk;
 }

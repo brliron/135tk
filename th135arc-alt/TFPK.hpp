@@ -2,6 +2,7 @@
 # define TFPK_HPP_
 
 # include <vector>
+# include <memory>
 # include "FnList.hpp"
 # include "FilesList.hpp"
 # include "UString.hpp"
@@ -35,10 +36,10 @@ private:
   unsigned char *extract_file(File& arc, FilesList_Entry& file, size_t& size);
 
 public:
-  DirList   *dirList;
-  FnList    *fnList;
-  FilesList *filesList;
-  size_t     dataOffset;
+  DirList                    dirList;
+  std::unique_ptr<FnList>    fnList;
+  std::unique_ptr<FilesList> filesList;
+  size_t                     dataOffset;
 
   TFPK() {}
   virtual ~TFPK();
@@ -49,7 +50,7 @@ public:
   bool extract_all(File& arc, UString::UString dest_dir);
   bool repack_all(File& arc, UString::UString dest_dir);
 
-  static TFPK *read(File& file);
+  static std::unique_ptr<TFPK> read(File& file);
 };
 
 class TFPK0 : public TFPK
