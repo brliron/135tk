@@ -2,7 +2,8 @@
 # define TFPK_HPP_
 
 # include <vector>
-# include <map>
+# include "FnList.hpp"
+# include "FilesList.hpp"
 # include "UString.hpp"
 # include "File.hpp"
 # include "Rsa.hpp"
@@ -22,71 +23,6 @@ public:
   bool read(Rsa& rsa, uint32_t dirCount);
 };
 
-
-class FnList : public std::map<uint32_t, UString::UString>
-{
-public:
-  FnList() {}
-  virtual ~FnList() {}
-  void add(UString::UString fn);
-  bool readFromTextFile(UString::UString fn);
-  bool readFromJsonFile(UString::UString fn);
-  bool readFromArchive(Rsa& rsa, uint32_t dirCount);
-  UString::UString hashToFn(uint32_t hash);
-
-  virtual uint32_t SpecialFNVHash(const char *path, uint32_t initHash = 0x811C9DC5u) = 0;
-};
-
-class FnList0 : public FnList
-{
-public:
-  FnList0() {}
-  ~FnList0() {}
-
-  uint32_t SpecialFNVHash(const char *path, uint32_t initHash = 0x811C9DC5u);
-};
-
-class FnList1 : public FnList
-{
-public:
-  FnList1() {}
-  ~FnList1() {}
-
-  uint32_t SpecialFNVHash(const char *path, uint32_t initHash = 0x811C9DC5u);
-};
-
-
-struct FilesList_Entry
-{
-  uint32_t FileSize;
-  uint32_t Offset;
-  uint32_t NameHash;
-  uint32_t Key[4];
-  UString::UString FileName;
-};
-class FilesList : public std::vector<FilesList_Entry>
-{
-public:
-  FilesList() {}
-  virtual ~FilesList() {}
-  virtual bool read(Rsa& rsa, uint32_t fileCount, FnList& fnList) = 0;
-};
-
-class FilesList0 : public FilesList
-{
-public:
-  FilesList0() {}
-  ~FilesList0() {}
-  bool read(Rsa& rsa, uint32_t fileCount, FnList& fnList);
-};
-
-class FilesList1 : public FilesList
-{
-public:
-  FilesList1() {}
-  ~FilesList1() {}
-  bool read(Rsa& rsa, uint32_t fileCount, FnList& fnList);
-};
 
 
 class TFPK
