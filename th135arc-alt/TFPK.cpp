@@ -3,7 +3,7 @@
 #include <string.h>
 #include <inttypes.h>
 #ifdef USTRING_WINDOWS
-# include <Windows.h>
+# include <windows.h>
 #else
 # include <sys/stat.h>
 # include <sys/types.h>

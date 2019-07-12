@@ -2,12 +2,14 @@
 # define FILE_HPP_
 
 # include "UString.hpp"
+# ifdef USTRING_WINDOWS
+#  include <windows.h>
+# endif
 
 class File
 {
 private:
 # ifdef USTRING_WINDOWS
-#  include <Windows.h>
   HANDLE hFile;
 # else
   int fd = -1;

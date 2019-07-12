@@ -8,7 +8,7 @@
 
 # include <string>
 
-# if 0
+# ifdef _WIN32
 #  define USTRING_WINDOWS
 # else
 // We don't add a define, we will just test #ifndef USTRING_WINDOWS
