@@ -1,5 +1,5 @@
 #include <algorithm>
-#include <stdio.h>
+#include <iostream>
 #include <string.h>
 #include <inttypes.h>
 #ifdef USTRING_WINDOWS
@@ -32,11 +32,12 @@ TFPK1::TFPK1()
 
 bool TFPK::parse_header(File& arc)
 {
-  printf("Reading header... ");
+  std::cout << "Reading header... ";
+  std::cout.flush();
   char magic[4];
   arc.read(magic, 4);
   if (memcmp(magic, "TFPK", 4) != 0) {
-    printf("Error: the given file isn't a TFPK archive.\n");
+    std::cerr << "Error: the given file isn't a TFPK archive." << std::endl;
     return false;
   }
 
@@ -47,7 +48,7 @@ bool TFPK::parse_header(File& arc)
   Rsa rsa(arc);
   uint32_t dirCount;
   if (rsa.read(&dirCount, sizeof(uint32_t)) == false) {
-    printf("Error: unknown RSA key!\n");
+    std::cerr << "Error: unknown RSA key" << std::endl;
     return false;
   }
   if (this->dirList.read(rsa, dirCount) == false)
@@ -61,14 +62,14 @@ bool TFPK::parse_header(File& arc)
     return false;
 
   this->dataOffset = arc.tell();
-  printf("done.\n");
+  std::cerr << "done." << std::endl;
   return true;
 }
 
 bool TFPK0::check_version(uint8_t version)
 {
   if (version != 0) {
-    printf("Version number must be 0 for TFPK0 archives.\n");
+    std::cerr << "Version number must be 0 for TFPK0 archives." << std::endl;
     return false;
   }
   return true;
@@ -77,7 +78,7 @@ bool TFPK0::check_version(uint8_t version)
 bool TFPK1::check_version(uint8_t version)
 {
   if (version != 1) {
-    printf("Version number must be 1 for TFPK1 archives.\n");
+    std::cerr << "Version number must be 1 for TFPK1 archives." << std::endl;
     return false;
   }
   return true;
@@ -225,15 +226,15 @@ bool TFPK::extract_all(File& arc, UString dest_dir)
 {
   int i = 0;
   for (auto& it : *this->filesList) {
-    printf("\r%d/%lu", i + 1, this->filesList->size());
-    fflush(stdout);
+    std::cout << "\r" << i + 1 << "/" << this->filesList->size();
+    std::cout.flush();
     if (this->extract_file(arc, it.FileName,
 			   dest_dir + "/" + UString(it.FileName, UString::SHIFT_JIS)
 			   ) == false)
       return false;
     i++;
   }
-  printf("\n");
+  std::cout << std::endl;
   return true;
 }
 
@@ -247,7 +248,7 @@ std::unique_ptr<TFPK> TFPK::read(File& arc)
   char magic[4];
   arc.read(magic, 4);
   if (memcmp(magic, "TFPK", 4) != 0) {
-    printf("Error: the given file isn't a TFPK archive.\n");
+    std::cerr << "Error: the given file isn't a TFPK archive." << std::endl;
     return nullptr;
   }
 
@@ -258,11 +259,10 @@ std::unique_ptr<TFPK> TFPK::read(File& arc)
   else if (version == 1)
     tfpk = std::make_unique<TFPK1>();
   else {
-    printf("Error: this tool works only with the archives from the following games:\n"
-	   "  Touhou 13.5\n"
-	   "  Touhou 14.5\n"
-	   "  Touhou 15.5\n"
-	  );
+    std::cerr << "Error: this tool works only with the archives from the following games:" << std::endl
+	      << "  Touhou 13.5" << std::endl
+	      << "  Touhou 14.5" << std::endl
+	      << "  Touhou 15.5" << std::endl;
     return nullptr;
   }
 

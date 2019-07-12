@@ -1,3 +1,4 @@
+#include <iostream>
 #include <string.h>
 #include <inttypes.h>
 #include <zlib.h>
@@ -48,13 +49,13 @@ void FnList::add(UString fn)
 
 bool FnList::readFromTextFile(UString fn)
 {
-  printf("Reading %s... ", fn.c_str());
-  fflush(stdout);
+  std::cout << "Reading " << fn << "... ";
+  std::cout.flush();
 
   File file(fn, File::READ);
   if (!file)
     {
-      printf("%s\n", file.error());
+      std::cerr << "%s" << file.error() << std::endl;
       return false;
     }
   file.seek(0, File::Seek::END);
@@ -80,16 +81,16 @@ bool FnList::readFromTextFile(UString fn)
   }
 
   delete[] data;
-  printf("done.\n");
+  std::cout << "done." << std::endl;
   return true;
 }
 
 bool FnList::readFromJsonFile(UString fn)
 {
-  printf("Reading %s... ", fn.c_str());
-  fflush(stdout);
+  std::cout << "Reading " <<  fn << "... ";
+  std::cout.flush();
 
-  printf("FnList::readFromJsonfile isn't implemented yet.\n");
+  std::cerr << "FnList::readFromJsonfile isn't implemented yet." << std::endl;
   return false;
 }
 
@@ -118,11 +119,11 @@ bool FnList::readFromArchive(Rsa& rsa, uint32_t dirCount)
   if (ret != Z_OK)
     {
       if (ret == Z_MEM_ERROR)
-	printf("Z_MEM_ERROR");
+	std::cerr << "Z_MEM_ERROR";
       else if (ret == Z_BUF_ERROR)
-	printf("Z_BUF_ERROR");
+	std::cerr << "Z_BUF_ERROR";
       else if (ret == Z_DATA_ERROR)
-	printf("Z_DATA_ERROR");
+	std::cerr << "Z_DATA_ERROR";
       delete[] compressedFnList;
       delete[] fnList;
       return false;

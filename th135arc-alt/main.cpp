@@ -1,4 +1,4 @@
-#include <stdio.h>
+#include <iostream>
 #include "File.hpp"
 #include "TFPK.hpp"
 
@@ -7,9 +7,8 @@ int main(int ac, char **av)
   if (ac != 3 || (av[1][0] != '/' && av[1][0] != '-') ||
       (av[1][1] != 'x' && av[1][1] != 'p'))
     {
-      printf("Usage: %s /x file.pak\n"
-	     "Or:    %s /p dir\n",
-	     av[0], av[0]);
+      std::cout << "Usage: " << av[0] << " /x file.pak" << std::endl
+		<< "Or:    " << av[0] << " /p dir" << std::endl;
       return 0;
     }
 
@@ -19,7 +18,7 @@ int main(int ac, char **av)
       File file(fn, File::READ);
       if (!file)
 	{
-	  printf("Could not open %s: %s\n", fn.c_str(), file.error());
+	  std::cerr << "Could not open " << fn << ": " << file.error() << std::endl;
 	  return 1;
 	}
       std::unique_ptr<TFPK> arc = TFPK::read(file);
@@ -40,7 +39,7 @@ int main(int ac, char **av)
       arc->repack_all(file, fn);
     }
   else
-    printf("Error: unknown parameter %s\n", av[1]);
+    std::cerr << "Error: unknown parameter " << av[1] << std::endl;
 
   return 0;
 }

@@ -10,7 +10,8 @@ class File
 {
 private:
 # ifdef USTRING_WINDOWS
-  HANDLE hFile;
+  HANDLE hFile = INVALID_HANDLE_VALUE;
+  DWORD err = 0;
 # else
   int fd = -1;
   int err = 0;
@@ -37,11 +38,11 @@ public:
   bool open(UString fn, int flags);
   void close();
   int read(void *buffer, size_t size);
-  int write(void *buffer, size_t size);
+  int write(const void *buffer, size_t size);
   bool seek(ssize_t off, Seek pos);
   size_t tell();
   operator bool();
-  const char *error();
+  std::string error();
 
   uint8_t readByte();
   uint32_t readDword();

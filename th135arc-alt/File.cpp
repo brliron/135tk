@@ -1,4 +1,5 @@
 #include <stdexcept>
+#include <sstream>
 #include <string.h>
 #ifndef USTRING_WINDOWS
 # include <sys/types.h>
@@ -23,7 +24,94 @@ File::~File()
 }
 
 #ifdef USTRING_WINDOWS
-# error TODO
+bool File::open(UString fn, int flags)
+{
+  if (this->hFile == INVALID_HANDLE_VALUE)
+    this->close();
+
+  DWORD dwDesiredAccess = (flags & READ ? GENERIC_READ : 0) | (flags & WRITE ? GENERIC_WRITE : 0);
+  DWORD dwCreationDisposition = 0;
+  if ((flags & (WRITE | TRUNCATE)) == (WRITE | TRUNCATE))
+    dwCreationDisposition = CREATE_ALWAYS;
+  else if (flags & WRITE)
+    dwCreationDisposition = OPEN_ALWAYS;
+  else if (flags & READ)
+    dwCreationDisposition = OPEN_EXISTING;
+
+  this->hFile = CreateFileW(fn.w_str(), dwDesiredAccess, FILE_SHARE_READ, nullptr, dwCreationDisposition, FILE_ATTRIBUTE_NORMAL, nullptr);
+  this->err = GetLastError();
+  return this->hFile != INVALID_HANDLE_VALUE;
+}
+
+void File::close()
+{
+  if (this->hFile != INVALID_HANDLE_VALUE)
+    CloseHandle(this->hFile);
+  this->hFile = INVALID_HANDLE_VALUE;
+}
+
+int File::read(void *buffer, size_t size)
+{
+  DWORD nRead;
+  BOOL ret = ReadFile(this->hFile, buffer, size, &nRead, nullptr);
+  if (ret == FALSE) {
+    this->err = GetLastError();
+    return false;
+  }
+  return nRead;
+}
+
+int File::write(const void *buffer, size_t size)
+{
+  DWORD nWritten;
+  BOOL ret = WriteFile(this->hFile, buffer, size, &nWritten, nullptr);
+  if (ret == FALSE) {
+    this->err = GetLastError();
+    return false;
+  }
+  return nWritten;
+}
+
+bool File::seek(ssize_t off, Seek pos)
+{
+  DWORD dwMoveMethod;
+  switch (pos)
+    {
+    case Seek::SET:
+      dwMoveMethod = FILE_BEGIN;
+      break;
+    case Seek::CUR:
+      dwMoveMethod = FILE_CURRENT;
+      break;
+    case Seek::END:
+      dwMoveMethod = FILE_END;
+      break;
+    default:
+      throw std::logic_error("File::seek: wrong value for parameter pos");
+    }
+  bool ret = SetFilePointer(this->hFile, off, nullptr, dwMoveMethod) != INVALID_SET_FILE_POINTER;
+  this->err = GetLastError();
+  return ret;
+}
+
+size_t File::tell()
+{
+  DWORD ret = SetFilePointer(this->hFile, 0, nullptr, FILE_CURRENT);
+  this->err = GetLastError();
+  return ret;
+}
+
+File::operator bool()
+{
+  return this->hFile != INVALID_HANDLE_VALUE;
+}
+
+std::string File::error()
+{
+  std::ostringstream ss;
+  ss << "Windows error code " << this->err;
+  return ss.str();
+}
 #else
 bool File::open(UString fn, int flags)
 {
@@ -66,7 +154,7 @@ int File::read(void *buffer, size_t size)
   return ret;
 }
 
-int File::write(void *buffer, size_t size)
+int File::write(const void *buffer, size_t size)
 {
   int ret = ::write(this->fd, buffer, size);
   this->err = errno;
@@ -90,7 +178,7 @@ bool File::seek(ssize_t off, Seek pos)
     default:
       throw std::logic_error("File::seek: wrong value for parameter pos");
     }
-  int ret = lseek(this->fd, off, whence) != -1;
+  bool ret = lseek(this->fd, off, whence) != -1;
   this->err = errno;
   return ret;
 }
@@ -107,7 +195,7 @@ File::operator bool()
   return this->fd != -1;
 }
 
-const char *File::error()
+std::string File::error()
 {
   return strerror(this->err);
 }
