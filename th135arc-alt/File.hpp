@@ -27,12 +27,12 @@ public:
     };
 
   File();
-  File(UString::UString fn, int flags);
+  File(UString fn, int flags);
   File(const File&) = delete;
   ~File();
   File& operator=(const File&) = delete;
 
-  bool open(UString::UString fn, int flags);
+  bool open(UString fn, int flags);
   void close();
   int read(void *buffer, size_t size);
   int write(void *buffer, size_t size);

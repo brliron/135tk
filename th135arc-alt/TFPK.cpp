@@ -13,6 +13,7 @@
 TFPK::~TFPK()
 {}
 
+// TODO: do not read files list from the constructor (we can't report errors).
 TFPK0::TFPK0()
 {
   this->fnList = std::make_unique<FnList0>();
@@ -93,11 +94,11 @@ bool DirList::read(Rsa& rsa, uint32_t dirCount)
 }
 
 
-bool TFPK::CreateDirectoryForPath(UString::UString fn)
+bool TFPK::CreateDirectoryForPath(UString fn)
 {
   for (unsigned int i = 0; i < fn.length(); i++) {
     if (fn[i] == '\\' || fn[i] == '/') {
-      UString::UString temp_fn = fn.substr(0, i);
+      UString temp_fn = fn.substr(0, i);
 #ifdef USTRING_WINDOWS
       if (CreateDirectoryW(temp_fn.w_str(), NULL) == 0 && GetLastError() != ERROR_ALREADY_EXISTS)
 	return false;
@@ -191,7 +192,7 @@ unsigned char *TFPK::extract_file(File& arc, FilesList_Entry& file, size_t& size
   return data;
 }
 
-unsigned char *TFPK::extract_file(File& arc, UString::UString fn, size_t& size)
+unsigned char *TFPK::extract_file(File& arc, UString fn, size_t& size)
 {
   auto it = std::find_if(this->filesList->begin(), this->filesList->end(),
 		      [&fn](auto it) { return it.FileName == fn; });
@@ -201,7 +202,7 @@ unsigned char *TFPK::extract_file(File& arc, UString::UString fn, size_t& size)
     return nullptr;
 }
 
-bool TFPK::extract_file(File& arc, UString::UString fn, UString::UString dest)
+bool TFPK::extract_file(File& arc, UString fn, UString dest)
 {
   size_t size;
   unsigned char *data = this->extract_file(arc, fn, size);
@@ -220,14 +221,14 @@ bool TFPK::extract_file(File& arc, UString::UString fn, UString::UString dest)
   return true;
 }
 
-bool TFPK::extract_all(File& arc, UString::UString dest_dir)
+bool TFPK::extract_all(File& arc, UString dest_dir)
 {
   int i = 0;
   for (auto& it : *this->filesList) {
     printf("\r%d/%lu", i + 1, this->filesList->size());
     fflush(stdout);
     if (this->extract_file(arc, it.FileName,
-			   dest_dir + "/" + UString::UString(it.FileName, UString::SHIFT_JIS)
+			   dest_dir + "/" + UString(it.FileName, UString::SHIFT_JIS)
 			   ) == false)
       return false;
     i++;
@@ -236,7 +237,7 @@ bool TFPK::extract_all(File& arc, UString::UString dest_dir)
   return true;
 }
 
-bool TFPK::repack_all(File&, UString::UString)
+bool TFPK::repack_all(File&, UString)
 {
   return false;
 }

@@ -32,7 +32,7 @@ private:
   virtual bool check_version(uint8_t version) = 0;
   virtual void UncryptBlock(unsigned char *data, size_t size, uint32_t *Key) = 0;
 
-  bool CreateDirectoryForPath(UString::UString fn);
+  bool CreateDirectoryForPath(UString fn);
   unsigned char *extract_file(File& arc, FilesList_Entry& file, size_t& size);
 
 public:
@@ -45,10 +45,10 @@ public:
   virtual ~TFPK();
 
   bool parse_header(File& arc);
-  unsigned char *extract_file(File& arc, UString::UString fn, size_t& size);
-  bool extract_file(File& arc, UString::UString fn, UString::UString dest);
-  bool extract_all(File& arc, UString::UString dest_dir);
-  bool repack_all(File& arc, UString::UString dest_dir);
+  unsigned char *extract_file(File& arc, UString fn, size_t& size);
+  bool extract_file(File& arc, UString fn, UString dest);
+  bool extract_all(File& arc, UString dest_dir);
+  bool repack_all(File& arc, UString dest_dir);
 
   static std::unique_ptr<TFPK> read(File& file);
 };

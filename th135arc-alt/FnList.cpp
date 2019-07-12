@@ -41,12 +41,12 @@ uint32_t FnList1::SpecialFNVHash(const char *path, uint32_t initHash)
   return hash * -1;
 }
 
-void FnList::add(UString::UString fn)
+void FnList::add(UString fn)
 {
   (*this)[this->SpecialFNVHash(fn.c_str())] = fn;
 }
 
-bool FnList::readFromTextFile(UString::UString fn)
+bool FnList::readFromTextFile(UString fn)
 {
   printf("Reading %s... ", fn.c_str());
   fflush(stdout);
@@ -75,7 +75,7 @@ bool FnList::readFromTextFile(UString::UString fn)
     if (j > 0 && data[j - 1] == '\r')
       data[j - 1] = '\0';
     const char *path = data + i;
-    this->add(UString::UString(path, UString::SHIFT_JIS));
+    this->add(UString(path, UString::SHIFT_JIS));
     i = j + 1;
   }
 
@@ -84,7 +84,7 @@ bool FnList::readFromTextFile(UString::UString fn)
   return true;
 }
 
-bool FnList::readFromJsonFile(UString::UString fn)
+bool FnList::readFromJsonFile(UString fn)
 {
   printf("Reading %s... ", fn.c_str());
   fflush(stdout);
@@ -135,7 +135,7 @@ bool FnList::readFromArchive(Rsa& rsa, uint32_t dirCount)
     if (str[0] == '\0')
       break;
 
-    this->add(UString::UString(str, UString::SHIFT_JIS));
+    this->add(UString(str, UString::SHIFT_JIS));
     pos += strlen(str) + 1;
   }
 
@@ -144,7 +144,7 @@ bool FnList::readFromArchive(Rsa& rsa, uint32_t dirCount)
   return true;
 }
 
-UString::UString FnList::hashToFn(uint32_t hash)
+UString FnList::hashToFn(uint32_t hash)
 {
   auto elem = this->find(hash);
   if (elem != this->end())
@@ -153,5 +153,5 @@ UString::UString FnList::hashToFn(uint32_t hash)
   char fn[13];
   sprintf(fn, "unk_%08" PRIX32, hash);
 
-  return UString::UString(fn);
+  return UString(fn);
 }

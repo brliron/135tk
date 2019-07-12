@@ -12,7 +12,7 @@
 File::File()
 {}
 
-File::File(UString::UString fn, int flags)
+File::File(UString fn, int flags)
 {
   this->open(fn, flags);
 }
@@ -25,7 +25,7 @@ File::~File()
 #ifdef USTRING_WINDOWS
 # error TODO
 #else
-bool File::open(UString::UString fn, int flags)
+bool File::open(UString fn, int flags)
 {
   if (this->fd != -1)
     this->close();

@@ -5,16 +5,16 @@
 # include "UString.hpp"
 # include "Rsa.hpp"
 
-class FnList : public std::map<uint32_t, UString::UString>
+class FnList : public std::map<uint32_t, UString>
 {
 public:
   FnList() {}
   virtual ~FnList() {}
-  void add(UString::UString fn);
-  bool readFromTextFile(UString::UString fn);
-  bool readFromJsonFile(UString::UString fn);
+  void add(UString fn);
+  bool readFromTextFile(UString fn);
+  bool readFromJsonFile(UString fn);
   bool readFromArchive(Rsa& rsa, uint32_t dirCount);
-  UString::UString hashToFn(uint32_t hash);
+  UString hashToFn(uint32_t hash);
 
   virtual uint32_t SpecialFNVHash(const char *path, uint32_t initHash = 0x811C9DC5u) = 0;
 };

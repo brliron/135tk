@@ -13,7 +13,7 @@ int main(int ac, char **av)
       return 0;
     }
 
-  UString::UString fn(av[2], UString::CONSOLE);
+  UString fn(av[2], UString::CONSOLE);
   if (av[1][1] == 'x')
     {
       File file(fn, File::READ);
@@ -35,7 +35,7 @@ int main(int ac, char **av)
   else if (av[1][1] == 'p')
     {
       std::unique_ptr<TFPK> arc = std::make_unique<TFPK1>();
-      UString::UString pak_fn = fn + ".pak";
+      UString pak_fn = fn + ".pak";
       File file(pak_fn, File::WRITE | File::TRUNCATE);
       arc->repack_all(file, fn);
     }
