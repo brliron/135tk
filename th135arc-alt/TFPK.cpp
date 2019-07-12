@@ -101,7 +101,7 @@ bool TFPK::CreateDirectoryForPath(UString fn)
     if (fn[i] == '\\' || fn[i] == '/') {
       UString temp_fn = fn.substr(0, i);
 #ifdef USTRING_WINDOWS
-      if (CreateDirectoryW(temp_fn.w_str(), NULL) == 0 && GetLastError() != ERROR_ALREADY_EXISTS)
+      if (CreateDirectoryW(temp_fn.w_str().get(), NULL) == 0 && GetLastError() != ERROR_ALREADY_EXISTS)
 	return false;
 #else
       if (mkdir(temp_fn.c_str(), 0777) == -1 && errno != EEXIST)

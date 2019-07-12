@@ -25,9 +25,12 @@ UString::UString(const std::string& src, Encoding encoding)
 }
 
 UString::UString::~UString()
+{}
+
+std::shared_ptr<wchar_t[]> UString::w_str()
 {
-  if (wstring)
-    delete[] wstring;
+  this->wstring.reset(this->convert_string<wchar_t, char>(this->c_str(), UTF8, WCHAR_T));
+  return this->wstring;
 }
 
 UString& UString::assign(const std::string& str, Encoding encoding)

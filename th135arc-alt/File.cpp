@@ -38,7 +38,7 @@ bool File::open(UString fn, int flags)
   else if (flags & READ)
     dwCreationDisposition = OPEN_EXISTING;
 
-  this->hFile = CreateFileW(fn.w_str(), dwDesiredAccess, FILE_SHARE_READ, nullptr, dwCreationDisposition, FILE_ATTRIBUTE_NORMAL, nullptr);
+  this->hFile = CreateFileW(fn.w_str().get(), dwDesiredAccess, FILE_SHARE_READ, nullptr, dwCreationDisposition, FILE_ATTRIBUTE_NORMAL, nullptr);
   this->err = GetLastError();
   return this->hFile != INVALID_HANDLE_VALUE;
 }

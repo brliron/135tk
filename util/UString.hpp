@@ -7,6 +7,7 @@
 // For Windows, it uses MultiByteToWideChar and WideCharToMultiByte.
 
 # include <string>
+# include <memory>
 
 # ifdef _WIN32
 #  define USTRING_WINDOWS
@@ -34,7 +35,7 @@ public:
   };
 
 private:
-  wchar_t   *wstring;
+  std::shared_ptr<wchar_t[]> wstring;
 
   // Convert a string from an encoding to another.
   // The returned value is allocated with new Dst[] and must be freed with delete[].
@@ -49,9 +50,7 @@ public:
   ~UString();
 
   // Returns a wide representation of the string.
-  // This representation is valid while the string object doesn't change.
-  // TODO: return a shared_ptr and remove the line above.
-  const wchar_t *w_str();
+  std::shared_ptr<wchar_t[]> w_str();
 
   UString& assign(const std::string& str, Encoding encoding = UTF8);
   UString& assign(const std::string& str, size_t subpos, size_t sublen, Encoding encoding = UTF8);
