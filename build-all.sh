@@ -5,7 +5,7 @@ rm -rf 135tk.zip
 
 # Build
 make -C Act-Nut-Lib
-for dir in bmpfont nhtextool read_pat TFBMTool-alt th145arc; do
+for dir in bmpfont nhtextool read_pat TFBMTool-alt th145arc th175arc; do
     echo "Building $dir..."
     cd $dir
     ./build.sh
@@ -22,6 +22,7 @@ cp read_pat/read_pat.exe 135tk
 cp TFBMTool-alt/TFBMTool-alt.exe TFBMTool-alt/extractBM-alt.exe 135tk
 # cp th135arc-alt/th135arc-alt.exe 135tk
 cp th145arc/th145arc.exe th145arc/fileslist.txt 135tk
+cp th175arc/th175arc.exe th175arc/fileslist.js 135tk
 
 # Copy dependencies
 DEP_DIR=/mingw32/bin

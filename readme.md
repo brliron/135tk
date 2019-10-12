@@ -106,3 +106,8 @@ A tool to extract and repack the pak files from Touhou 14.5 and Touhou 15.5.
 To extract files, run `./th145arc /x th145.pak`. To repack them, run `./th145arc /p th145.pak`.  
 
 Archives created with /p will only be usable by the Touhou 14.5 English patch, the original game won't be able to open them. And there is currently no way to use the archives created by this tool in Touhou 15.5.
+
+## th175arc (by brliron)
+A tool to extract and repack the cga files from the Touhou 17.5 1st beta (might work with the other betas and the release, I don't know yet).
+To extract files, run `./th175arc -x data.cga data`. To repack them, run `./th175arc -p data data.cga`.  
+Also, note that game.exe is __both__ an exe file and a cga file. When you run `-x` on the exe file, the output directory will also contain a `game.exe`, which contains only the exe part of game.exe. And when you run `-p` on a directory with a game.exe file, the output file will be a working exe file.
