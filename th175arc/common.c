@@ -5,7 +5,9 @@
 #include <sys/stat.h>
 #include <sys/types.h>
 // PATH_MAX
+#ifndef WIN32
 #include <linux/limits.h>
+#endif
 //
 #include "th175arc.h"
 
@@ -94,7 +96,11 @@ int create_directory_for_path(const char *path_)
 			break;
 		}
 		*end = '\0';
+#ifdef WIN32
+		mkdir(path);
+#else
 		mkdir(path, 0755);
+#endif
 		*end = '/';
 		end++;
 	}
