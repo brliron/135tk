@@ -1,9 +1,14 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#ifdef WIN32
+// FindFirstFile
+# include <windows.h>
+#else
 // opendir
-#include <sys/types.h>
-#include <dirent.h>
+# include <sys/types.h>
+# include <dirent.h>
+#endif
 //
 #include "th175arc.h"
 
@@ -23,6 +28,51 @@ char **add_to_list(char **list_in, size_t *size, size_t *capacity, char *elem)
 	return list_in;
 }
 
+#ifdef WIN32
+char **list_files(const char *in_dir)
+{
+	char pattern[MAX_PATH];
+	snprintf(pattern, MAX_PATH, "%s\\*", in_dir);
+
+	WIN32_FIND_DATA entry;
+	HANDLE hFind = FindFirstFile(pattern, &entry);
+	if (hFind == INVALID_HANDLE_VALUE) {
+		fprintf(stderr, "%s: Windows error code %d\n", pattern, GetLastError());
+		return NULL;
+	}
+
+	char **list = NULL;
+	size_t size = 0;
+	size_t capacity = 0;
+	do {
+		char *path = strdup(make_path(in_dir, entry.cFileName));
+		if ((entry.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) == 0) {
+			list = add_to_list(list, &size, &capacity, path);
+			// Do not free path
+		}
+		else if ((entry.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) &&
+			strcmp(entry.cFileName, ".") != 0 &&
+			strcmp(entry.cFileName, "..") != 0) {
+			char **sublist = list_files(path);
+			if (sublist) {
+				for (int i = 0; sublist[i]; i++) {
+					list = add_to_list(list, &size, &capacity, sublist[i]);
+				}
+				free(sublist);
+			}
+			free(path);
+		}
+		else {
+			// Unknown file type
+			free(path);
+		}
+	} while (FindNextFile(hFind, &entry));
+
+	FindClose(hFind);
+	list = add_to_list(list, &size, &capacity, NULL);
+	return list;
+}
+#else
 char **list_files(const char *in_dir)
 {
 	DIR *dir = opendir(in_dir);
@@ -63,6 +113,7 @@ char **list_files(const char *in_dir)
 	list = add_to_list(list, &size, &capacity, NULL);
 	return list;
 }
+#endif /* WIN32 */
 
 void free_files_list(char **list)
 {
