@@ -7,8 +7,8 @@ int main(int ac, char **av)
   if (ac != 3 || (av[1][0] != '/' && av[1][0] != '-') ||
       (av[1][1] != 'x' && av[1][1] != 'p'))
     {
-      std::cout << "Usage: " << av[0] << " /x file.pak" << std::endl
-		<< "Or:    " << av[0] << " /p dir" << std::endl;
+      std::cout << "Usage: " << av[0] << " -x file.pak" << std::endl
+		<< "Or:    " << av[0] << " -p dir" << std::endl;
       return 0;
     }
 

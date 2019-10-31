@@ -107,6 +107,18 @@ To extract files, run `./th145arc /x th145.pak`. To repack them, run `./th145arc
 
 Archives created with /p will only be usable by the Touhou 14.5 English patch, the original game won't be able to open them. And there is currently no way to use the archives created by this tool in Touhou 15.5.
 
+## th135arc-alt (by brliron)
+Yet another tool to extract and repack the pak files from the 2nd generation Tasofro fighters (Touhou 13.5, Touhou 14.5 and Touhou 15.5). Well, it doesn't support repacking yet. But it will eventually (but probably not for Touhou 15.5 because I didn't make a exe with a different key).
+
+Why making yet another tool for that?
+- First, th135arc supports only Touhou 13.5, and th145arc supports only Touhou 14.5 and Touhou 15.5. This one supports the 3 games.
+- Next, it works on Linux, if you care about that.
+- And finally, this one does not *have* to extract everything from the archive. It does that, but it can easily be modified to extract only a part of it. And I want to use that feature with the palette editor.
+
+Usage:  
+`./th135arc-alt.exe -x th135.pak` to extract files from `th135.pak` to the `th135` directory, or
+`./th135arc-alt.exe -p th135` to repack files from the `th135` directory to `th135.pak`.
+
 ## th175arc (by brliron)
 A tool to extract and repack the cga files from the Touhou 17.5 1st beta (might work with the other betas and the release, I don't know yet).
 To extract files, run `./th175arc -x data.cga data`. To repack them, run `./th175arc -p data data.cga`.  
