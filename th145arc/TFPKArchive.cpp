@@ -298,7 +298,7 @@ int BuildList(const wchar_t* BasePath, const wchar_t* Path, std::list<TFPKLIST>&
 	HANDLE hFind = INVALID_HANDLE_VALUE;
 	WIN32_FIND_DATA FindData;
 
-	swprintf(FindPath,L"%s\\%s\\*.*", BasePath, Path);
+	swprintf(FindPath,L"%S\\%S\\*.*", BasePath, Path);
 	hFind = FindFirstFile(FindPath,&FindData);
 	if(hFind  == INVALID_HANDLE_VALUE) return -1;
 
@@ -311,16 +311,16 @@ int BuildList(const wchar_t* BasePath, const wchar_t* Path, std::list<TFPKLIST>&
 		{
 			wchar_t NPath[MAX_PATH] = {0};
 			if (Path[0] == L'\0')
-				swprintf(NPath,L"%s",FindData.cFileName);
+				swprintf(NPath,L"%S",FindData.cFileName);
 			else
-				swprintf(NPath,L"%s\\%s",Path,FindData.cFileName);
+				swprintf(NPath,L"%S\\%S",Path,FindData.cFileName);
 			BuildList(BasePath,NPath,FileList);
 		}
 		else
 		{
 			FileCount++;
 			wchar_t* PathName = new wchar_t[MAX_PATH];
-			swprintf(PathName, L"%s\\%s\\%s", BasePath, Path, FindData.cFileName);
+			swprintf(PathName, L"%S\\%S\\%S", BasePath, Path, FindData.cFileName);
 
 			char* FName = new char[MAX_PATH];
 			DWORD hash = 0;

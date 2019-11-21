@@ -37,7 +37,7 @@ char **list_files(const char *in_dir)
 	WIN32_FIND_DATA entry;
 	HANDLE hFind = FindFirstFile(pattern, &entry);
 	if (hFind == INVALID_HANDLE_VALUE) {
-		fprintf(stderr, "%s: Windows error code %d\n", pattern, GetLastError());
+		fprintf(stderr, "%s: Windows error code %lu\n", pattern, GetLastError());
 		return NULL;
 	}
 

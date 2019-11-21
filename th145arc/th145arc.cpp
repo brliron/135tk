@@ -66,7 +66,7 @@ int main(int argc, char* argv[])
 				wcscpy(OutputFileName, dir);
 				wcscat(OutputFileName, L".pak");
 
-				wprintf(L"Packing %s\n", OutputFileName);
+				wprintf(L"Packing %S\n", OutputFileName);
 				BuildArchive(OutputFileName,dir);
 				printf("Finished.\n\n");
 			}
