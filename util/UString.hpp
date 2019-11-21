@@ -8,15 +8,13 @@
 
 # include <string>
 # include <memory>
+# include "os.hpp"
 
-# ifdef _WIN32
-#  define USTRING_WINDOWS
-# else
-// We don't add a define, we will just test #ifndef USTRING_WINDOWS
+# ifndef OS_WINDOWS
 #  include <iconv.h>
 # endif
 
-/*# ifdef USTRING_WINDOWS
+/*# ifdef OS_WINDOWS
   enum Encoding{
     UTF8 = CP_UTF8,
     SHIFT_JIS = 932,

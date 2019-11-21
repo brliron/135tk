@@ -1,14 +1,14 @@
 #include <stdexcept>
 #include <sstream>
 #include <string.h>
-#ifndef USTRING_WINDOWS
+#include "os.hpp"
+#ifndef OS_WINDOWS
 # include <sys/types.h>
 # include <sys/stat.h>
 # include <fcntl.h>
 # include <unistd.h>
 #endif
 #include "File.hpp"
-#include "Rsa.hpp"
 
 File::File()
 {}
@@ -23,7 +23,7 @@ File::~File()
   this->close();
 }
 
-#ifdef USTRING_WINDOWS
+#ifdef OS_WINDOWS
 bool File::open(UString fn, int flags)
 {
   if (this->hFile == INVALID_HANDLE_VALUE)

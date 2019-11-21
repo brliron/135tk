@@ -2,12 +2,7 @@
 #include <iostream>
 #include <string.h>
 #include <inttypes.h>
-#ifdef USTRING_WINDOWS
-# include <windows.h>
-#else
-# include <sys/stat.h>
-# include <sys/types.h>
-#endif
+#include "os.hpp"
 #include "TFPK.hpp"
 
 TFPK::~TFPK()
@@ -16,17 +11,23 @@ TFPK::~TFPK()
 // TODO: do not read files list from the constructor (we can't report errors).
 TFPK0::TFPK0()
 {
+  UString basedir = OS::getSelfPath();
+  basedir.resize(basedir.rfind('/') + 1);
+
   this->fnList = std::make_unique<FnList0>();
-  this->fnList->readFromTextFile("fileslist.txt");
-  this->fnList->readFromJsonFile("fileslist.js");
+  this->fnList->readFromTextFile(basedir + "fileslist.txt");
+  this->fnList->readFromJsonFile(basedir + "fileslist.js");
   this->filesList = std::make_unique<FilesList0>();
 }
 
 TFPK1::TFPK1()
 {
+  UString basedir = OS::getSelfPath();
+  basedir.resize(basedir.rfind('/') + 1);
+
   this->fnList = std::make_unique<FnList1>();
-  this->fnList->readFromTextFile("fileslist.txt");
-  this->fnList->readFromJsonFile("fileslist.js");
+  this->fnList->readFromTextFile(basedir + "fileslist.txt");
+  this->fnList->readFromJsonFile(basedir + "fileslist.js");
   this->filesList = std::make_unique<FilesList1>();
 }
 
@@ -100,13 +101,7 @@ bool TFPK::CreateDirectoryForPath(UString fn)
   for (unsigned int i = 0; i < fn.length(); i++) {
     if (fn[i] == '\\' || fn[i] == '/') {
       UString temp_fn = fn.substr(0, i);
-#ifdef USTRING_WINDOWS
-      if (CreateDirectoryW(temp_fn.w_str().get(), NULL) == 0 && GetLastError() != ERROR_ALREADY_EXISTS)
-	return false;
-#else
-      if (mkdir(temp_fn.c_str(), 0777) == -1 && errno != EEXIST)
-	return false;
-#endif
+      OS::mkdir(temp_fn);
     }
   }
   return true;

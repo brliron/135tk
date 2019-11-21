@@ -55,7 +55,7 @@ bool FnList::readFromTextFile(UString fn)
   File file(fn, File::READ);
   if (!file)
     {
-      std::cerr << "%s" << file.error() << std::endl;
+      std::cerr << file.error() << std::endl;
       return false;
     }
   file.seek(0, File::Seek::END);

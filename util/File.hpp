@@ -1,15 +1,16 @@
 #ifndef FILE_HPP_
 # define FILE_HPP_
 
+# include "os.hpp"
 # include "UString.hpp"
-# ifdef USTRING_WINDOWS
+# ifdef OS_WINDOWS
 #  include <windows.h>
 # endif
 
 class File
 {
 private:
-# ifdef USTRING_WINDOWS
+# ifdef OS_WINDOWS
   HANDLE hFile = INVALID_HANDLE_VALUE;
   DWORD err = 0;
 # else

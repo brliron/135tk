@@ -1,5 +1,12 @@
 #include <string.h>
 #include "UString.hpp"
+#include "os.hpp"
+
+#ifdef OS_WINDOWS
+# include "UString_windows.cpp"
+#else
+# include "UString_unix.cpp"
+#endif
 
 UString::UString()
   : wstring(nullptr)
