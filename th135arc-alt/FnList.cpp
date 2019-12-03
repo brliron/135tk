@@ -2,16 +2,18 @@
 #include <string.h>
 #include <inttypes.h>
 #include <zlib.h>
+#include "OS.hpp"
 #include "TFPK.hpp"
 
-uint32_t FnList0::SpecialFNVHash(const char *path, uint32_t initHash)
+uint32_t FnList0::SpecialFNVHash(const OS::sjisstring& path, uint32_t initHash)
 {
+  const char *cpath = path.c_str();
   uint32_t hash; // eax@1
   uint32_t ch; // esi@2
 
-  for (hash = initHash; *path; hash = ch ^ 0x1000193 * hash)
+  for (hash = initHash; *cpath; hash = ch ^ 0x1000193 * hash)
     {
-      unsigned char c = *path++;
+      unsigned char c = *cpath++;
       ch = c;
       if ((c & 0x80) == 0)
 	{
@@ -23,14 +25,15 @@ uint32_t FnList0::SpecialFNVHash(const char *path, uint32_t initHash)
   return hash;
 }
 
-uint32_t FnList1::SpecialFNVHash(const char *path, uint32_t initHash)
+uint32_t FnList1::SpecialFNVHash(const OS::sjisstring& path, uint32_t initHash)
 {
+  const char *cpath = path.c_str();
   uint32_t hash; // eax@1
   uint32_t ch; // esi@2
 
-  for (hash = initHash; *path; hash = (hash ^ ch) * 0x1000193)
+  for (hash = initHash; *cpath; hash = (hash ^ ch) * 0x1000193)
     {
-      unsigned char c = *path++;
+      unsigned char c = *cpath++;
       ch = c;
       if ((c & 0x80) == 0)
 	{
@@ -42,50 +45,43 @@ uint32_t FnList1::SpecialFNVHash(const char *path, uint32_t initHash)
   return hash * -1;
 }
 
-void FnList::add(UString fn)
+void FnList::add(const OS::sjisstring& fn)
 {
-  (*this)[this->SpecialFNVHash(fn.c_str())] = fn;
+  (*this)[this->SpecialFNVHash(fn)] = OS::sjisToPath(fn);
 }
 
-bool FnList::readFromTextFile(UString fn)
+bool FnList::readFromTextFile(const std::filesystem::path& fn)
 {
   std::cout << "Reading " << fn << "... ";
   std::cout.flush();
 
-  File file(fn, File::READ);
+  std::ifstream file(fn);
   if (!file)
     {
-      std::cerr << file.error() << std::endl;
+      std::cerr << "Could not open " << fn << std::endl;
       return false;
     }
-  file.seek(0, File::Seek::END);
-  size_t size = file.tell();
-  file.seek(0, File::Seek::SET);
 
-  char *data;
-  data = new char[size + 1];
-  data[size] = '\0';
-  file.read(data, size);
+  while (file)
+    {
+      OS::sjisstring line;
 
-  size_t i = 0;
-  while (i < size) {
-    size_t j = i;
-    while (j < size && data[j] != '\n')
-      j++;
-    data[j] = '\0';
-    if (j > 0 && data[j - 1] == '\r')
-      data[j - 1] = '\0';
-    const char *path = data + i;
-    this->add(UString(path, UString::SHIFT_JIS));
-    i = j + 1;
-  }
+      std::getline(file, line);
+      if (line.size() > 0 && line[line.size() - 1] == '\r')
+	line.resize(line.size() - 1);
 
-  delete[] data;
+      if (!line.empty())
+	{
+	  std::replace(line.begin(), line.end(), '\\', '/');
+	  this->add(line);
+	}
+    }
+
   std::cout << "done." << std::endl;
   return true;
 }
 
-bool FnList::readFromJsonFile(UString fn)
+bool FnList::readFromJsonFile(const std::filesystem::path& fn)
 {
   std::cout << "Reading " <<  fn << "... ";
   std::cout.flush();
@@ -136,7 +132,7 @@ bool FnList::readFromArchive(Rsa& rsa, uint32_t dirCount)
     if (str[0] == '\0')
       break;
 
-    this->add(UString(str, UString::SHIFT_JIS));
+    this->add(OS::sjisstring(str));
     pos += strlen(str) + 1;
   }
 
@@ -145,7 +141,7 @@ bool FnList::readFromArchive(Rsa& rsa, uint32_t dirCount)
   return true;
 }
 
-UString FnList::hashToFn(uint32_t hash)
+std::filesystem::path FnList::hashToFn(uint32_t hash)
 {
   auto elem = this->find(hash);
   if (elem != this->end())
@@ -154,5 +150,5 @@ UString FnList::hashToFn(uint32_t hash)
   char fn[13];
   sprintf(fn, "unk_%08" PRIX32, hash);
 
-  return UString(fn);
+  return fn;
 }

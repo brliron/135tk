@@ -2,7 +2,7 @@
 #include <iostream>
 #include <string.h>
 #include <inttypes.h>
-#include "os.hpp"
+#include "OS.hpp"
 #include "TFPK.hpp"
 
 TFPK::~TFPK()
@@ -11,27 +11,27 @@ TFPK::~TFPK()
 // TODO: do not read files list from the constructor (we can't report errors).
 TFPK0::TFPK0()
 {
-  UString basedir = OS::getSelfPath();
-  basedir.resize(basedir.rfind('/') + 1);
+  std::filesystem::path basedir = OS::getSelfPath();
+  basedir.remove_filename();
 
   this->fnList = std::make_unique<FnList0>();
-  this->fnList->readFromTextFile(basedir + "fileslist.txt");
-  this->fnList->readFromJsonFile(basedir + "fileslist.js");
+  this->fnList->readFromTextFile(basedir / "fileslist.txt");
+  this->fnList->readFromJsonFile(basedir / "fileslist.js");
   this->filesList = std::make_unique<FilesList0>();
 }
 
 TFPK1::TFPK1()
 {
-  UString basedir = OS::getSelfPath();
-  basedir.resize(basedir.rfind('/') + 1);
+  std::filesystem::path basedir = OS::getSelfPath();
+  basedir.remove_filename();
 
   this->fnList = std::make_unique<FnList1>();
-  this->fnList->readFromTextFile(basedir + "fileslist.txt");
-  this->fnList->readFromJsonFile(basedir + "fileslist.js");
+  this->fnList->readFromTextFile(basedir / "fileslist.txt");
+  this->fnList->readFromJsonFile(basedir / "fileslist.js");
   this->filesList = std::make_unique<FilesList1>();
 }
 
-bool TFPK::parse_header(File& arc)
+bool TFPK::parse_header(std::ifstream& arc)
 {
   std::cout << "Reading header... ";
   std::cout.flush();
@@ -42,7 +42,8 @@ bool TFPK::parse_header(File& arc)
     return false;
   }
 
-  uint8_t version = arc.readByte();
+  uint8_t version;
+  arc.read((char*)&version, sizeof(uint8_t));
   if (this->check_version(version) == false)
     return false;
 
@@ -62,7 +63,7 @@ bool TFPK::parse_header(File& arc)
   if (this->filesList->read(rsa, fileCount, *this->fnList) == false)
     return false;
 
-  this->dataOffset = arc.tell();
+  this->dataOffset = arc.tellg();
   std::cerr << "done." << std::endl;
   return true;
 }
@@ -95,17 +96,6 @@ bool DirList::read(Rsa& rsa, uint32_t dirCount)
   return true;
 }
 
-
-bool TFPK::CreateDirectoryForPath(UString fn)
-{
-  for (unsigned int i = 0; i < fn.length(); i++) {
-    if (fn[i] == '\\' || fn[i] == '/') {
-      UString temp_fn = fn.substr(0, i);
-      OS::mkdir(temp_fn);
-    }
-  }
-  return true;
-}
 
 void TFPK0::UncryptBlock(unsigned char *data, size_t size, uint32_t *Key)
 {
@@ -176,19 +166,19 @@ const char *guess_extension(const unsigned char *bytes, size_t size)
   return "";
 }
 
-unsigned char *TFPK::extract_file(File& arc, FilesList_Entry& file, size_t& size)
+unsigned char *TFPK::extract_file(std::ifstream& arc, FilesList_Entry& file, size_t& size)
 {
-  arc.seek(this->dataOffset + file.Offset, File::Seek::SET);
+  arc.seekg(this->dataOffset + file.Offset, std::ifstream::beg);
 
   unsigned char *data = new unsigned char[file.FileSize];
-  arc.read(data, file.FileSize);
+  arc.read((char*)data, file.FileSize);
   this->UncryptBlock(data, file.FileSize, file.Key);
 
   size = file.FileSize;
   return data;
 }
 
-unsigned char *TFPK::extract_file(File& arc, UString fn, size_t& size)
+unsigned char *TFPK::extract_file(std::ifstream& arc, const std::filesystem::path& fn, size_t& size)
 {
   auto it = std::find_if(this->filesList->begin(), this->filesList->end(),
 		      [&fn](auto it) { return it.FileName == fn; });
@@ -198,34 +188,31 @@ unsigned char *TFPK::extract_file(File& arc, UString fn, size_t& size)
     return nullptr;
 }
 
-bool TFPK::extract_file(File& arc, UString fn, UString dest)
+bool TFPK::extract_file(std::ifstream& arc, const std::filesystem::path& fn, std::filesystem::path dest)
 {
   size_t size;
   unsigned char *data = this->extract_file(arc, fn, size);
 
-  if (strncmp(fn.c_str(), "unk_", 4) == 0)
-    dest += guess_extension(data, size);
+  if (dest.filename().string().compare(0, 4, "unk_") == 0)
+    dest.replace_extension(guess_extension(data, size));
 
-  std::for_each(dest.begin(), dest.end(), [](char& c) {
-      if (c == '\\')
-	c = '/';
-    } );
-  CreateDirectoryForPath(dest);
-  File out(dest, File::WRITE | File::TRUNCATE);
-  out.write(data, size);
+  std::filesystem::path dir = dest;
+  dir.remove_filename();
+  std::filesystem::create_directories(dir);
+
+  std::ofstream out(dest, std::ofstream::trunc | std::ofstream::binary);
+  out.write((char*)data, size);
   delete[] data;
   return true;
 }
 
-bool TFPK::extract_all(File& arc, UString dest_dir)
+bool TFPK::extract_all(std::ifstream& arc, const std::filesystem::path& dest_dir)
 {
   int i = 0;
   for (auto& it : *this->filesList) {
     std::cout << "\r" << i + 1 << "/" << this->filesList->size();
     std::cout.flush();
-    if (this->extract_file(arc, it.FileName,
-			   dest_dir + "/" + UString(it.FileName, UString::SHIFT_JIS)
-			   ) == false)
+    if (this->extract_file(arc, it.FileName, dest_dir / it.FileName) == false)
       return false;
     i++;
   }
@@ -233,12 +220,12 @@ bool TFPK::extract_all(File& arc, UString dest_dir)
   return true;
 }
 
-bool TFPK::repack_all(File&, UString)
+bool TFPK::repack_all(std::ofstream&, const std::filesystem::path&)
 {
   return false;
 }
 
-std::unique_ptr<TFPK> TFPK::read(File& arc)
+std::unique_ptr<TFPK> TFPK::read(std::ifstream& arc)
 {
   char magic[4];
   arc.read(magic, 4);
@@ -247,7 +234,8 @@ std::unique_ptr<TFPK> TFPK::read(File& arc)
     return nullptr;
   }
 
-  uint8_t version = arc.readByte();
+  uint8_t version;
+  arc.read((char*)&version, sizeof(uint8_t));
   std::unique_ptr<TFPK> tfpk;
   if (version == 0)
     tfpk = std::make_unique<TFPK0>();
@@ -261,7 +249,7 @@ std::unique_ptr<TFPK> TFPK::read(File& arc)
     return nullptr;
   }
 
-  arc.seek(0, File::Seek::SET);
+  arc.seekg(0, std::ifstream::beg);
   if (!tfpk->parse_header(arc))
     return nullptr;
 

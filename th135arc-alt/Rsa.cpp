@@ -74,7 +74,7 @@ void Rsa::freeMiracl()
   Rsa::miraclInitialized = false;
 }
 
-Rsa::Rsa(File& file)
+Rsa::Rsa(std::ifstream& file)
   : file(file)
 {
   if (!Rsa::miraclInitialized)
@@ -202,13 +202,9 @@ bool Rsa::Decrypt6432(const unsigned char* src, unsigned char* dst, size_t dstLe
 bool Rsa::read(void *buffer, size_t size)
 {
   unsigned char tmp[64];
-  if (this->file.read(tmp, 64) != 64)
+  this->file.read((char*)tmp, 64);
+  if (this->file.fail() || this->file.gcount() != 64)
     return false;
 
   return this->Decrypt6432(tmp, (unsigned char*)buffer, size);
-}
-
-File& Rsa::getFile()
-{
-  return this->file;
 }

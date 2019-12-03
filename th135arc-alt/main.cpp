@@ -1,8 +1,12 @@
 #include <iostream>
-#include "File.hpp"
+#include <fstream>
 #include "TFPK.hpp"
 
+#ifdef OS_WINDOWS
+int wmain(int ac, wchar_t **av)
+#else
 int main(int ac, char **av)
+#endif
 {
   if (ac != 3 || (av[1][0] != '/' && av[1][0] != '-') ||
       (av[1][1] != 'x' && av[1][1] != 'p'))
@@ -12,21 +16,20 @@ int main(int ac, char **av)
       return 0;
     }
 
-  UString fn(av[2], UString::CONSOLE);
+  std::filesystem::path fn = av[2];
   if (av[1][1] == 'x')
     {
-      File file(fn, File::READ);
+      std::ifstream file(fn, std::ifstream::binary);
       if (!file)
 	{
-	  std::cerr << "Could not open " << fn << ": " << file.error() << std::endl;
+	  std::cerr << "Could not open " << fn << std::endl;
 	  return 1;
 	}
       std::unique_ptr<TFPK> arc = TFPK::read(file);
       if (!arc)
 	return 1;
-      size_t ext = fn.rfind(".");
-      if (ext != std::string::npos)
-        fn.erase(ext);
+      if (fn.has_extension())
+	fn.replace_extension();
       else
 	fn += "_extracted";
       arc->extract_all(file, fn);
@@ -34,8 +37,8 @@ int main(int ac, char **av)
   else if (av[1][1] == 'p')
     {
       std::unique_ptr<TFPK> arc = std::make_unique<TFPK1>();
-      UString pak_fn = fn + ".pak";
-      File file(pak_fn, File::WRITE | File::TRUNCATE);
+      std::filesystem::path pak_fn = std::filesystem::path(fn).concat(".pak");
+      std::ofstream file(pak_fn, std::ofstream::trunc | std::ofstream::binary);
       arc->repack_all(file, fn);
     }
   else

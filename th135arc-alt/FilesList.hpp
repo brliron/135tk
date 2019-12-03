@@ -1,9 +1,9 @@
 #ifndef FILESLIST_HPP_
 # define FILESLIST_HPP_
 
+# include <filesystem>
 # include <vector>
 # include "FnList.hpp"
-# include "UString.hpp"
 # include "Rsa.hpp"
 
 struct FilesList_Entry
@@ -12,7 +12,7 @@ struct FilesList_Entry
   uint32_t Offset;
   uint32_t NameHash;
   uint32_t Key[4];
-  UString FileName;
+  std::filesystem::path FileName;
 };
 class FilesList : public std::vector<FilesList_Entry>
 {

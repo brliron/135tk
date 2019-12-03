@@ -1,12 +1,12 @@
 #ifndef TFPK_HPP_
 # define TFPK_HPP_
 
-# include <vector>
+# include <filesystem>
+# include <fstream>
 # include <memory>
+# include <vector>
 # include "FnList.hpp"
 # include "FilesList.hpp"
-# include "UString.hpp"
-# include "File.hpp"
 # include "Rsa.hpp"
 
 #pragma pack(push, 1)
@@ -32,8 +32,7 @@ private:
   virtual bool check_version(uint8_t version) = 0;
   virtual void UncryptBlock(unsigned char *data, size_t size, uint32_t *Key) = 0;
 
-  bool CreateDirectoryForPath(UString fn);
-  unsigned char *extract_file(File& arc, FilesList_Entry& file, size_t& size);
+  unsigned char *extract_file(std::ifstream& arc, FilesList_Entry& file, size_t& size);
 
 public:
   DirList                    dirList;
@@ -44,13 +43,13 @@ public:
   TFPK() {}
   virtual ~TFPK();
 
-  bool parse_header(File& arc);
-  unsigned char *extract_file(File& arc, UString fn, size_t& size);
-  bool extract_file(File& arc, UString fn, UString dest);
-  bool extract_all(File& arc, UString dest_dir);
-  bool repack_all(File& arc, UString dest_dir);
+  bool parse_header(std::ifstream& arc);
+  unsigned char *extract_file(std::ifstream& arc, const std::filesystem::path& fn, size_t& size);
+  bool extract_file(std::ifstream& arc, const std::filesystem::path& fn, std::filesystem::path dest);
+  bool extract_all(std::ifstream& arc, const std::filesystem::path& dest_dir);
+  bool repack_all(std::ofstream& arc, const std::filesystem::path& dest_dir);
 
-  static std::unique_ptr<TFPK> read(File& file);
+  static std::unique_ptr<TFPK> read(std::ifstream& file);
 };
 
 class TFPK0 : public TFPK

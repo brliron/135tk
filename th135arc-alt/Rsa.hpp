@@ -1,7 +1,7 @@
 #ifndef RSA_HPP_
 # define RSA_HPP_
 
-# include "File.hpp"
+# include <fstream>
 
 extern "C"
 {
@@ -13,7 +13,7 @@ class Rsa
 private:
   static bool miraclInitialized;
 
-  File& file;
+  std::ifstream& file;
   bool publicKeyInitialized = false;
   big RSA_N;
   big RSA_d;
@@ -29,13 +29,9 @@ private:
 
 public:
   // The File object needs to be alive as long as the Rsa object is.
-  Rsa(File& file);
+  Rsa(std::ifstream& file);
   ~Rsa();
   bool read(void *buffer, size_t size);
-  // Return the internal File object used.
-  // You can use it for seek, errors etc.
-  // This function may be removed in the future and replaced with functions in this class.
-  File& getFile();
 
   static void initMiracl();
   static void freeMiracl();
