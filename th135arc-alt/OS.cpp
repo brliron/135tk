@@ -1,6 +1,5 @@
 #include <algorithm>
 #include <functional>
-#include <mutex>
 #include <vector>
 #include "OS.hpp"
 #ifdef OS_WINDOWS
@@ -52,11 +51,23 @@ std::filesystem::path OS::getSelfPath()
   return path.data();
 }
 
-std::filesystem::path OS::sjisToPath(const OS::sjisstring& src)
+// The Windows version is stateless
+OS::SjisConverter::SjisConverter() {}
+OS::SjisConverter::~SjisConverter() {}
+
+std::filesystem::path OS::SjisConverter::fromSjis(const std::string& src)
 {
   size_t dst_len = MultiByteToWideChar(932, 0, src.c_str(), -1, nullptr, 0);
   auto dst = std::make_unique<wchar_t[]>(dst_len);
   MultiByteToWideChar(932, 0, src.c_str(), -1, dst.get(), dst_len);
+  return dst.get();
+}
+
+std::string OS::SjisConverter::toSjis(const std::filesystem::path& src)
+{
+  size_t dst_len = WideCharToMultiByte(932, 0, src.c_str(), -1, nullptr, 0, nullptr, nullptr);
+  auto dst = std::make_unique<char[]>(dst_len);
+  MultiByteToWideChar(932, 0, src.c_str(), -1, dst.get(), dst_len, nullptr, nullptr);
   return dst.get();
 }
 
@@ -79,34 +90,40 @@ std::filesystem::path OS::getSelfPath()
   return path.data();
 }
 
-static std::mutex iconv_cache_mutex;
-static iconv_t& iconv_get_cached()
+OS::SjisConverter::SjisConverter()
 {
-  std::lock_guard<std::mutex> iconv_cache_guard(iconv_cache_mutex);
-  static iconv_t *iconv_cd;
-
-  if (!iconv_cd)
-    {
-      iconv_cd = new iconv_t[1];
-      *iconv_cd = iconv_open("utf-8", "cp932");
-    }
-
-  return *iconv_cd;
+  this->from = iconv_open("utf-8", "cp932");
+  this->to   = iconv_open("cp932", "utf-8");
 }
 
-std::filesystem::path OS::sjisToPath(const OS::sjisstring& src)
+OS::SjisConverter::~SjisConverter()
+{
+  iconv_close(this->from);
+  iconv_close(this->to);
+}
+
+std::filesystem::path OS::SjisConverter::fromSjis(const std::string& src)
 {
   size_t src_len = src.length() + 1;
-
-  iconv_t& cd = iconv_get_cached();
-
   size_t dst_len = src_len * 4;
   char *src_ = const_cast<char*>(src.c_str());
   auto dst = std::make_unique<char[]>(dst_len);
   char *dst_ = dst.get();
 
-  iconv(cd, &src_, &src_len, &dst_, &dst_len);
+  iconv(this->from, &src_, &src_len, &dst_, &dst_len);
   return (char8_t*)dst.get();
+}
+
+std::string OS::SjisConverter::toSjis(const std::filesystem::path& src)
+{
+  size_t src_len = src.string().length() + 1;
+  size_t dst_len = src_len * 2;
+  char *src_ = const_cast<char*>(src.c_str());
+  auto dst = std::make_unique<char[]>(dst_len);
+  char *dst_ = dst.get();
+
+  iconv(this->from, &src_, &src_len, &dst_, &dst_len);
+  return dst.get();
 }
 
 #endif

@@ -5,7 +5,9 @@
 #include "OS.hpp"
 #include "TFPK.hpp"
 
-uint32_t FnList0::SpecialFNVHash(const OS::sjisstring& path, uint32_t initHash)
+static const int RSA_BLOCK_SIZE = 32;
+
+uint32_t FnList0::SpecialFNVHash(const std::string& path, uint32_t initHash)
 {
   const char *cpath = path.c_str();
   uint32_t hash; // eax@1
@@ -25,7 +27,7 @@ uint32_t FnList0::SpecialFNVHash(const OS::sjisstring& path, uint32_t initHash)
   return hash;
 }
 
-uint32_t FnList1::SpecialFNVHash(const OS::sjisstring& path, uint32_t initHash)
+uint32_t FnList1::SpecialFNVHash(const std::string& path, uint32_t initHash)
 {
   const char *cpath = path.c_str();
   uint32_t hash; // eax@1
@@ -45,9 +47,27 @@ uint32_t FnList1::SpecialFNVHash(const OS::sjisstring& path, uint32_t initHash)
   return hash * -1;
 }
 
-void FnList::add(const OS::sjisstring& fn)
+uint32_t FnList::SpecialFNVHash(const std::filesystem::path& path, uint32_t initHash)
 {
-  (*this)[this->SpecialFNVHash(fn)] = OS::sjisToPath(fn);
+  return this->SpecialFNVHash(this->converter.toSjis(path), initHash);
+}
+
+void FnList::add(const std::string& fn)
+{
+  (*this)[this->SpecialFNVHash(fn)] = this->converter.fromSjis(fn);
+}
+
+void FnList::add(const std::filesystem::path& fn)
+{
+  (*this)[this->SpecialFNVHash(this->converter.toSjis(fn))] = fn;
+}
+
+bool FnList::set_content(const std::vector<std::filesystem::path>& files)
+{
+  for (const auto& file : files) {
+    this->add(file);
+  }
+  return true;
 }
 
 bool FnList::readFromTextFile(const std::filesystem::path& fn)
@@ -64,7 +84,7 @@ bool FnList::readFromTextFile(const std::filesystem::path& fn)
 
   while (file)
     {
-      OS::sjisstring line;
+      std::string line;
 
       std::getline(file, line);
       if (line.size() > 0 && line[line.size() - 1] == '\r')
@@ -90,28 +110,29 @@ bool FnList::readFromJsonFile(const std::filesystem::path& fn)
   return false;
 }
 
+#pragma pack(push, 1)
+struct FnHeader
+{
+  uint32_t compSize;
+  uint32_t origSize;
+  uint32_t blockCount;
+};
+#pragma pack(pop)
+
 bool FnList::readFromArchive(Rsa& rsa, uint32_t dirCount)
 {
   if (dirCount == 0)
     return true;
 
-#pragma pack(push, 1)
-  struct {
-    uint32_t compSize;
-    uint32_t origSize;
-    uint32_t blockCount;
-  } fnHeader;
-#pragma pack(pop)
+  FnHeader fnHeader;
   rsa.read((char*)&fnHeader, sizeof(fnHeader));
 
-  const int blockSize = Rsa::KEY_BYTESIZE / 2;
-  unsigned char *compressedFnList = new unsigned char[fnHeader.compSize + Rsa::KEY_BYTESIZE];
-  for (size_t i = 0; i < fnHeader.blockCount; i++)
-    rsa.read(compressedFnList + i * blockSize, blockSize);
+  auto compressedFnList = std::make_unique<unsigned char[]>(fnHeader.blockCount * RSA_BLOCK_SIZE);
+  rsa.read(compressedFnList.get(), fnHeader.blockCount * RSA_BLOCK_SIZE);
 
-  char *fnList = new char[fnHeader.origSize + 1];
+  auto fnList = std::make_unique<char[]>(fnHeader.origSize + 1);
   unsigned long destLen = fnHeader.origSize;
-  int ret = uncompress((unsigned char*)fnList, &destLen, compressedFnList, fnHeader.compSize);
+  int ret = uncompress((unsigned char*)fnList.get(), &destLen, compressedFnList.get(), fnHeader.compSize);
   if (ret != Z_OK)
     {
       if (ret == Z_MEM_ERROR)
@@ -120,24 +141,60 @@ bool FnList::readFromArchive(Rsa& rsa, uint32_t dirCount)
 	std::cerr << "Z_BUF_ERROR";
       else if (ret == Z_DATA_ERROR)
 	std::cerr << "Z_DATA_ERROR";
-      delete[] compressedFnList;
-      delete[] fnList;
       return false;
     }
   fnList[destLen] = '\0';
 
   size_t pos = 0;
   while (pos < fnHeader.origSize) {
-    const char *str = fnList + pos;
+    const char *str = fnList.get() + pos;
     if (str[0] == '\0')
       break;
 
-    this->add(OS::sjisstring(str));
+    this->add(std::string(str));
     pos += strlen(str) + 1;
   }
 
-  delete[] compressedFnList;
-  delete[] fnList;
+  return true;
+}
+
+bool FnList::write(Rsa& rsa)
+{
+  std::vector<std::string> sjis_filenames(this->size());
+  std::transform(this->begin(), this->end(), sjis_filenames.begin(), [this](const auto& it) {
+    return this->converter.toSjis(it.second);
+  });
+
+  std::vector<char> uncompressedList;
+  for (const auto& it : sjis_filenames) {
+    uncompressedList.insert(uncompressedList.end(), it.begin(), it.end());
+    uncompressedList.push_back('\0');
+  }
+
+  // rsa.write will be called with a size multiple of RSA_BLOCK_SIZE, so it may read a bit after the compressed data
+  unsigned long compressedLen = compressBound(uncompressedList.size()) + RSA_BLOCK_SIZE;
+  auto compressedList = std::make_unique<unsigned char[]>(compressedLen);
+  int ret = compress(compressedList.get(), &compressedLen, (unsigned char*)uncompressedList.data(), uncompressedList.size());
+  if (ret != Z_OK)
+    {
+      if (ret == Z_MEM_ERROR)
+	std::cerr << "Z_MEM_ERROR";
+      else if (ret == Z_BUF_ERROR)
+	std::cerr << "Z_BUF_ERROR";
+      else if (ret == Z_DATA_ERROR)
+	std::cerr << "Z_DATA_ERROR";
+      return false;
+    }
+
+  FnHeader fnHeader;
+  fnHeader.compSize = compressedLen;
+  fnHeader.origSize = uncompressedList.size();
+  fnHeader.blockCount = compressedLen / RSA_BLOCK_SIZE;
+  if (compressedLen % RSA_BLOCK_SIZE != 0)
+    fnHeader.blockCount++;
+
+  rsa.write((char*)&fnHeader, sizeof(fnHeader));
+  rsa.write(compressedList.get(), fnHeader.blockCount * RSA_BLOCK_SIZE);
   return true;
 }
 

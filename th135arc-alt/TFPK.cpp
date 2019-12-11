@@ -31,10 +31,22 @@ TFPK1::TFPK1()
   this->filesList = std::make_unique<FilesList1>();
 }
 
+uint8_t TFPK0::get_version()
+{
+  return 0;
+}
+
+uint8_t TFPK1::get_version()
+{
+  return 1;
+}
+
 bool TFPK::parse_header(std::ifstream& arc)
 {
   std::cout << "Reading header... ";
   std::cout.flush();
+  arc.seekg(0, std::ifstream::beg);
+
   char magic[4];
   arc.read(magic, 4);
   if (memcmp(magic, "TFPK", 4) != 0) {
@@ -44,8 +56,10 @@ bool TFPK::parse_header(std::ifstream& arc)
 
   uint8_t version;
   arc.read((char*)&version, sizeof(uint8_t));
-  if (this->check_version(version) == false)
+  if (version != this->get_version()) {
+    std::cerr << "Version number must be " << this->get_version() << " for this archive." << std::endl;
     return false;
+  }
 
   Rsa rsa(arc);
   uint32_t dirCount;
@@ -68,22 +82,41 @@ bool TFPK::parse_header(std::ifstream& arc)
   return true;
 }
 
-bool TFPK0::check_version(uint8_t version)
+bool TFPK::write_header(std::ofstream& arc)
 {
-  if (version != 0) {
-    std::cerr << "Version number must be 0 for TFPK0 archives." << std::endl;
-    return false;
-  }
+  std::cout << "Writing header... ";
+  std::cout.flush();
+  arc.seekp(0, std::ofstream::beg);
+
+  arc.write("TFPK", 4);
+
+  uint8_t version = this->get_version();
+  arc.write((char*)&version, sizeof(uint8_t));
+
+  Rsa rsa(arc, this->get_version() == 0 ? Rsa::CryptMode::TH135 : Rsa::CryptMode::TH145);
+  this->dirList.write(rsa);
+  this->fnList->write(rsa);
+  this->filesList->write(rsa);
+
+  this->dataOffset = arc.tellp();
+  std::cerr << "done." << std::endl;
   return true;
 }
 
-bool TFPK1::check_version(uint8_t version)
+void DirList::set_content(const std::vector<std::filesystem::path>& files, std::function<uint32_t (std::filesystem::path)> hash)
 {
-  if (version != 1) {
-    std::cerr << "Version number must be 1 for TFPK1 archives." << std::endl;
-    return false;
+  std::map<std::filesystem::path, uint32_t> dirs;
+
+  for (auto file : files) {
+    std::filesystem::path dir = file;
+    dir.remove_filename();
+    dirs[dir]++;
   }
-  return true;
+
+  this->clear();
+  for (auto dir : dirs) {
+    this->push_back({ hash(dir.first), dir.second });
+  }
 }
 
 bool DirList::read(Rsa& rsa, uint32_t dirCount)
@@ -96,23 +129,39 @@ bool DirList::read(Rsa& rsa, uint32_t dirCount)
   return true;
 }
 
+bool DirList::write(Rsa& rsa) const
+{
+  uint32_t dirCount = this->size();
+  rsa.write(&dirCount, sizeof(uint32_t));
 
-void TFPK0::UncryptBlock(unsigned char *data, size_t size, uint32_t *Key)
+  for (const DirList_Entry& entry : *this) {
+    rsa.write((const char*)&entry, sizeof(entry));
+  }
+  return true;
+}
+
+
+void TFPK0::UncryptBlock(std::vector<uint8_t>& data, uint32_t *Key)
 {
   uint8_t *key = (uint8_t*)Key;
 
-  for (size_t i = 0; i < size; i++)
+  for (size_t i = 0; i < data.size(); i++)
     data[i] ^= key[i % 16];
 }
 
-void TFPK1::UncryptBlock(unsigned char *data, size_t size, uint32_t *Key)
+void TFPK0::CryptBlock(std::vector<uint8_t>& data, uint32_t *Key)
+{
+  return this->UncryptBlock(data, Key);
+}
+
+void TFPK1::UncryptBlock(std::vector<uint8_t>& data, uint32_t *Key)
 {
   uint8_t *key = (uint8_t*)Key;
   uint8_t  aux[4];
   for (int i = 0; i < 4; i++)
     aux[i] = key[i];
 
-  for (uint32_t i = 0; i < size; i++)
+  for (size_t i = 0; i < data.size(); i++)
     {
       uint8_t tmp = data[i];
       data[i] = data[i] ^ key[i % 16] ^ aux[i % 4];
@@ -120,13 +169,40 @@ void TFPK1::UncryptBlock(unsigned char *data, size_t size, uint32_t *Key)
     }
 }
 
-const char *guess_extension(const unsigned char *bytes, size_t size)
+uint32_t TFPK1::CryptBlock(std::vector<uint8_t>& data, uint32_t* Key, uint32_t Aux)
+{
+  uint8_t* key = (uint8_t*)Key;
+  uint8_t* aux = (uint8_t*)&Aux;
+
+  for (signed int i = data.size() - 1; i >= 0; i--)
+    {
+      uint8_t unencByte = data[i];
+      uint8_t encByte = aux[i % 4];
+      data[i] = encByte;
+      aux[i % 4] = unencByte ^ encByte ^ key[i % 16];
+    }
+
+  return Aux;
+}
+
+void TFPK1::CryptBlock(std::vector<uint8_t>& data, uint32_t* Key)
+{
+  uint32_t Aux;
+  std::vector<uint8_t> tempCopy = data;
+  Aux = this->CryptBlock(tempCopy, Key, Key[0]); // This call seems to give the correct Aux value.
+
+  CryptBlock(data, Key, Aux);
+}
+
+const char *TFPK::guess_extension(const std::vector<uint8_t>& data)
 {
   struct Magic
   {
     size_t size;
-    const char *magic;
+    const uint8_t *magic;
     const char *ext;
+    Magic(size_t size, const char *magic, const char *ext)
+      : size(size), magic((const uint8_t*)magic), ext(ext) {}
   };
   std::vector<Magic> magics = {
     { 73, "#========================================================================", ".pl" },
@@ -149,60 +225,60 @@ const char *guess_extension(const unsigned char *bytes, size_t size)
 
   uint32_t expected_nhtex_header[12] = {
     0x20, 0, 0x10, 0,
-    0x20, 0, (uint32_t)(size - 0x30), 0,
+    0x20, 0, (uint32_t)(data.size() - 0x30), 0,
     0, 0, 0, 0
   };
-  if (size >= 52 && memcmp(bytes, expected_nhtex_header, 0x30) == 0 &&
-      (memcmp(bytes + 0x30, "\x89PNG", 4) == 0 || memcmp(bytes + 0x30, "DDS ", 4) == 0))
+  if (data.size() >= 0x34 && std::equal(data.begin(), data.begin() + 0x30, (uint8_t*)expected_nhtex_header) &&
+      (std::equal(data.begin() + 0x30, data.begin() + 0x34, "\x89PNG") || std::equal(data.begin() + 0x30, data.begin() + 0x34, "DDS ")))
     return ".nhtex";
 
-  if (size >= 12 && memcmp(bytes, "RIFF", 4) == 0 && memcmp(bytes + 8, "SFPL", 4) == 0)
+  if (data.size() >= 12 && std::equal(data.begin(), data.begin() + 4, "RIFF") && std::equal(data.begin() + 8, data.begin() + 12, "SFPL"))
     return ".sfl";
 
   for (auto& it : magics)
-    if (size >= it.size && memcmp(bytes, it.magic, it.size) == 0)
+    if (data.size() >= it.size && std::equal(data.begin(), data.begin() + it.size, it.magic))
       return it.ext;
 
   return "";
 }
 
-unsigned char *TFPK::extract_file(std::ifstream& arc, FilesList_Entry& file, size_t& size)
+std::vector<uint8_t> TFPK::extract_file(std::ifstream& arc, FilesList_Entry& file)
 {
   arc.seekg(this->dataOffset + file.Offset, std::ifstream::beg);
 
-  unsigned char *data = new unsigned char[file.FileSize];
-  arc.read((char*)data, file.FileSize);
-  this->UncryptBlock(data, file.FileSize, file.Key);
+  std::vector<uint8_t> data(file.FileSize);
+  arc.read((char*)data.data(), file.FileSize);
+  this->UncryptBlock(data, file.Key);
 
-  size = file.FileSize;
   return data;
 }
 
-unsigned char *TFPK::extract_file(std::ifstream& arc, const std::filesystem::path& fn, size_t& size)
+std::vector<uint8_t> TFPK::extract_file(std::ifstream& arc, const std::filesystem::path& fn)
 {
   auto it = std::find_if(this->filesList->begin(), this->filesList->end(),
 		      [&fn](auto it) { return it.FileName == fn; });
   if (it != this->filesList->end())
-    return this->extract_file(arc, *it, size);
+    return this->extract_file(arc, *it);
   else
-    return nullptr;
+    return std::vector<uint8_t>();
 }
 
 bool TFPK::extract_file(std::ifstream& arc, const std::filesystem::path& fn, std::filesystem::path dest)
 {
-  size_t size;
-  unsigned char *data = this->extract_file(arc, fn, size);
+  std::vector<uint8_t> data = this->extract_file(arc, fn);
+  if (data.empty()) {
+    return false;
+  }
 
   if (dest.filename().string().compare(0, 4, "unk_") == 0)
-    dest.replace_extension(guess_extension(data, size));
+    dest.replace_extension(this->guess_extension(data));
 
   std::filesystem::path dir = dest;
   dir.remove_filename();
   std::filesystem::create_directories(dir);
 
   std::ofstream out(dest, std::ofstream::trunc | std::ofstream::binary);
-  out.write((char*)data, size);
-  delete[] data;
+  out.write((char*)data.data(), data.size());
   return true;
 }
 
@@ -220,9 +296,92 @@ bool TFPK::extract_all(std::ifstream& arc, const std::filesystem::path& dest_dir
   return true;
 }
 
-bool TFPK::repack_all(std::ofstream&, const std::filesystem::path&)
+bool TFPK::repack_file(std::ofstream& arc, FilesList_Entry& file, std::vector<uint8_t>&& data)
 {
-  return false;
+  if (data.size() != file.FileSize) {
+    return false;
+  }
+
+  ssize_t offset = this->dataOffset + file.Offset;
+  arc.seekp(0, std::ifstream::end);
+  if (arc.tellp() < offset) {
+    std::vector<char> fill_data(offset - arc.tellp());
+    arc.write(fill_data.data(), fill_data.size());
+  }
+
+  arc.seekp(offset, std::ifstream::beg);
+
+  std::vector<uint8_t> local_data = data;
+  this->CryptBlock(local_data, file.Key);
+  arc.write((char*)local_data.data(), local_data.size());
+
+  return true;
+}
+
+bool TFPK::repack_file(std::ofstream& arc, const std::filesystem::path& fn, std::vector<uint8_t>&& data)
+{
+  auto it = std::find_if(this->filesList->begin(), this->filesList->end(),
+		      [&fn](auto it) { return it.FileName == fn; });
+  if (it != this->filesList->end())
+    return this->repack_file(arc, *it, std::move(data));
+  else
+    return false;
+}
+
+bool TFPK::repack_file(std::ofstream& arc, const std::filesystem::path& src, std::filesystem::path fn)
+{
+  std::ifstream in(src, std::ofstream::binary);
+  if (!in) {
+    std::cerr << "Could not open " << src << std::endl;
+    return false;
+  }
+
+  size_t size;
+  in.seekg(0, std::ifstream::end);
+  size = in.tellg();
+  in.seekg(0, std::ifstream::beg);
+
+  std::vector<uint8_t> data;
+  data.resize(size);
+  in.read((char*)data.data(), data.size());
+
+  return this->repack_file(arc, fn, std::move(data));
+}
+
+std::vector<std::filesystem::path> TFPK::list_files(const std::filesystem::path& dir)
+{
+  std::vector<std::filesystem::path> files;
+
+  for (auto& it : std::filesystem::recursive_directory_iterator(dir)) {
+    if (!it.is_directory()) {
+      files.push_back(it.path().lexically_relative(dir));
+    }
+  }
+  return files;
+}
+
+bool TFPK::repack_all(std::ofstream& arc, const std::filesystem::path& src_dir)
+{
+  std::vector<std::filesystem::path> files = this->list_files(src_dir);
+
+  auto hash_function = [this](const std::filesystem::path& path) { return this->fnList->SpecialFNVHash(path); };
+  this->dirList.set_content(files, hash_function);
+  this->fnList->set_content(files);
+  this->filesList->set_content(src_dir, files, hash_function);
+  this->write_header(arc);
+
+  // Browse in the filesList header allows us to create the file sequentially.
+  int i = 0;
+  for (auto& it : *this->filesList) {
+    std::cout << "\r" << i + 1 << "/" << this->filesList->size();
+    std::cout.flush();
+    if (!this->repack_file(arc, src_dir / it.FileName, it.FileName))
+      return false;
+    i++;
+  }
+  std::cout << std::endl;
+
+  return true;
 }
 
 std::unique_ptr<TFPK> TFPK::read(std::ifstream& arc)
@@ -249,7 +408,6 @@ std::unique_ptr<TFPK> TFPK::read(std::ifstream& arc)
     return nullptr;
   }
 
-  arc.seekg(0, std::ifstream::beg);
   if (!tfpk->parse_header(arc))
     return nullptr;
 

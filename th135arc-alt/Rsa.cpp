@@ -3,9 +3,12 @@
 #include <string.h>
 #include "Rsa.hpp"
 
+static const int KEY_SIZE = 512; // in bits
+static const int KEY_BYTESIZE = KEY_SIZE / 8;
+
 bool Rsa::miraclInitialized = false;
 
-std::vector<std::array<unsigned char, Rsa::KEY_BYTESIZE> > KEYS_N = {
+static const std::vector<std::array<unsigned char, KEY_BYTESIZE> > KEYS_N = {
   // Touhou 13.5
   {
     0xC7, 0x9A, 0x9E, 0x9B, 0xFB, 0xC2, 0x0C, 0xB0, 0xC3, 0xE7, 0xAE, 0x27, 0x49, 0x67, 0x62, 0x8A, 
@@ -54,12 +57,14 @@ const unsigned char KEY_d[KEY_BYTESIZE] = {
 };
 */
 // Touhou 13.5 original private key, computed by Riatre
-const unsigned char KEY_d[Rsa::KEY_BYTESIZE] = {
+static const unsigned char KEY_d[KEY_BYTESIZE] = {
   0x34, 0x78, 0x84, 0xF1, 0x64, 0x41, 0x22, 0xAC, 0xE5, 0x12, 0xE6, 0x49, 0x15, 0x96, 0xC3, 0xE4,
   0xBA, 0xD0, 0x44, 0xB0, 0x87, 0x3E, 0xCE, 0xE5, 0x52, 0x81, 0x2D, 0x5A, 0x7D, 0x7E, 0x0C, 0x75,
   0x6A, 0x96, 0x7C, 0xE7, 0x5F, 0xDF, 0x7A, 0x21, 0x86, 0x40, 0x5B, 0x10, 0x43, 0xFD, 0x47, 0xDA,
   0x7B, 0xA7, 0xA4, 0xAC, 0x89, 0x20, 0xA6, 0x93, 0x91, 0x1C, 0x63, 0x5A, 0x83, 0x8E, 0x08, 0x01
 };
+
+static const unsigned char PaddingBytes[32] = {0x00,0x01,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0x00};
 
 void Rsa::initMiracl()
 {
@@ -75,7 +80,18 @@ void Rsa::freeMiracl()
 }
 
 Rsa::Rsa(std::ifstream& file)
-  : file(file)
+  : ifile(&file), ofile(nullptr)
+{
+  this->init();
+}
+
+Rsa::Rsa(std::ofstream& file, Rsa::CryptMode cryptMode)
+  : ifile(nullptr), ofile(&file), cryptMode(cryptMode)
+{
+  this->init();
+}
+
+void Rsa::init()
 {
   if (!Rsa::miraclInitialized)
     Rsa::initMiracl();
@@ -176,6 +192,19 @@ void Rsa::DecryptBlock(const unsigned char *src, unsigned char *dst)
   mirkill(result);
 }
 
+void Rsa::EncryptBlock(const unsigned char* src, unsigned char* dst)
+{
+  big sint = mirvar(0);
+  bytes_to_big(KEY_BYTESIZE,(const char*)src, sint);
+
+  big result = mirvar(0);
+  powmod(sint, RSA_d, RSA_N, result);
+  big_to_bytes(KEY_BYTESIZE, result, (char*)dst, TRUE);
+
+  mirkill(sint);
+  mirkill(result);
+}
+
 bool Rsa::Decrypt6432(const unsigned char* src, unsigned char* dst, size_t dstLen)
 {
   if (dstLen > 0x20)
@@ -199,12 +228,79 @@ bool Rsa::Decrypt6432(const unsigned char* src, unsigned char* dst, size_t dstLe
   return this->skipPaddingAndCopy(tmp, dst, dstLen);
 }
 
-bool Rsa::read(void *buffer, size_t size)
+bool Rsa::Encrypt3264(const unsigned char* src, unsigned char* dst, size_t srcLen)
+{
+  if (srcLen > 0x20)
+    return false;
+
+  if (this->cryptMode == CryptMode::TH135)
+    {
+      // Th135 - encrypt using the original private key
+      unsigned char tmp[64] = {0};
+      memcpy(tmp + 0x20, src, srcLen);
+      memcpy(tmp, PaddingBytes, 0x20);
+      EncryptBlock(tmp, dst);
+    }
+  else
+    {
+      // Th145 - no encryption
+      memcpy(dst, src, srcLen);
+      memset(dst + srcLen, 0, 0x40 - srcLen);
+    }
+  return true;
+}
+
+bool Rsa::read32(void *buffer, size_t size)
 {
   unsigned char tmp[64];
-  this->file.read((char*)tmp, 64);
-  if (this->file.fail() || this->file.gcount() != 64)
+  this->ifile->read((char*)tmp, 64);
+  if (this->ifile->fail() || this->ifile->gcount() != 64)
     return false;
 
   return this->Decrypt6432(tmp, (unsigned char*)buffer, size);
+}
+
+bool Rsa::read(void *buffer, size_t size)
+{
+  if (!this->ifile)
+    throw std::logic_error("Calling Rsa::read on a stream in outputj mode");
+
+  char *buffer_ = (char*)buffer;
+  while (size > 32) {
+    if (!this->read32(buffer_, 32))
+      return false;
+    buffer_ += 32;
+    size -= 32;
+  }
+
+  return this->read32(buffer_, size);
+}
+
+bool Rsa::write32(const void *buffer, size_t size)
+{
+  unsigned char tmp[64];
+  if (!this->Encrypt3264((unsigned char*)buffer, tmp, size))
+    return false;
+
+  this->ofile->write((char*)tmp, 64);
+  if (this->ofile->fail())
+    return false;
+
+  return true;
+}
+
+bool Rsa::write(const void *buffer, size_t size)
+{
+  if (!this->ofile)
+    throw std::logic_error("Calling Rsa::write on a stream in input mode");
+
+  const char *buffer_ = (const char*)buffer;
+  while (size > 32) {
+    if (!this->write32(buffer_, 32))
+      return false;
+    buffer_ += 32;
+    size -= 32;
+  }
+
+  return this->write32(buffer_, size);
 }
