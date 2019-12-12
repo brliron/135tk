@@ -67,7 +67,7 @@ std::string OS::SjisConverter::toSjis(const std::filesystem::path& src)
 {
   size_t dst_len = WideCharToMultiByte(932, 0, src.c_str(), -1, nullptr, 0, nullptr, nullptr);
   auto dst = std::make_unique<char[]>(dst_len);
-  MultiByteToWideChar(932, 0, src.c_str(), -1, dst.get(), dst_len, nullptr, nullptr);
+  WideCharToMultiByte(932, 0, src.c_str(), -1, dst.get(), dst_len, nullptr, nullptr);
   return dst.get();
 }
 
