@@ -19,11 +19,12 @@ OBJS	= $(SRCS:.cpp=.o)
 CXXFLAGS = -Wall -Wextra -std=c++2a
 ifeq ($(OS),Windows_NT)
 CXXFLAGS += -municode
+LDFLAGS  += -municode
 endif
 
 CXXFLAGS += -IMIRACL
 
-LDFLAGS	= MIRACL/miracl.a -lz -g
+LDFLAGS	+= MIRACL/miracl.a -lz -g
 
 all: $(NAME)
 
