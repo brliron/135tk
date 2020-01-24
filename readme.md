@@ -26,6 +26,8 @@ You have an example in [the thcrap source code](https://github.com/thpatch/thcra
 
 Look at [main.cpp](https://github.com/thpatch/Act-Nut-lib/blob/master/main.cpp) and the header files for more examples.
 
+The Makefile builds 2 copies of the lib and executable: print-act-nut and libactnut are for 32-bits nut files (most of them), and print-act-nut-64 and libactnut64 are for 64-bits nut files (from the PS4 version of ULiL). Note that print-act-nut-64 and libactnut64 can be used on a 32-bits computer.
+
 ## bmpfont (by brliron)
 Touhou 15.5 decided to use bitmap fonts instead of rendering texts with a TTF font. The bitmap font provided by the game supports only Japanese and some latin characters, so we have to provide a different font for translations.
 

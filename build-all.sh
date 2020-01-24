@@ -16,7 +16,7 @@ done
 
 # Copy binaries
 mkdir -p 135tk
-cp Act-Nut-lib/libactnut.dll Act-Nut-lib/print-act-nut.exe 135tk
+cp Act-Nut-lib/libactnut.dll Act-Nut-lib/print-act-nut.exe Act-Nut-lib/libactnut64.dll Act-Nut-lib/print-act-nut-64.exe 135tk
 cp bmpfont/bmpfont_extract.exe bmpfont/bmpfont_convert.exe bmpfont/bmpfont_create.exe bmpfont/bmpfont_create_gdi.dll bmpfont/bmpfont_create_gdiplus.dll 135tk
 cp nhtextool/nhtextool.exe 135tk
 cp orig_135tk/* 135tk
