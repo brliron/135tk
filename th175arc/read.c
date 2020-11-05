@@ -29,9 +29,14 @@ filenames_cache_t *filenames_cache_build(const char *path)
 	size_t i;
 	json_t *value;
 	json_array_foreach(list, i, value) {
-		const char *fn = json_string_value(value);
+		char *fn = strdup(json_string_value(value));
+		for (int j = 0; fn[j]; j++) {
+			if (fn[j] == '\\') {
+				fn[j] = '/';
+			}
+		}
 		cache[i].hash = calc_hash(fn);
-		cache[i].filename = strdup(fn);
+		cache[i].filename = fn;
 	}
 	cache[i].hash = 0;
 	cache[i].filename = NULL;
