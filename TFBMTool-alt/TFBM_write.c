@@ -35,10 +35,10 @@ int convert_PNG_to_TFBM(LPCWSTR png, LPCWSTR out_tfbm)
   uint32_t width, height;
   int bit_depth, color_type;
   png_get_IHDR(png_ptr, info_ptr, &width, &height, &bit_depth, &color_type, NULL, NULL, NULL);
-  if (!(
-	(bit_depth == 8  && color_type == PNG_COLOR_TYPE_PALETTE) ||
-	(bit_depth == 24 && color_type == PNG_COLOR_TYPE_RGB) ||
-	(bit_depth == 32 && color_type == PNG_COLOR_TYPE_RGB_ALPHA)
+  if (bit_depth != 8 || !(
+	color_type == PNG_COLOR_TYPE_PALETTE ||
+	color_type == PNG_COLOR_TYPE_RGB ||
+	color_type == PNG_COLOR_TYPE_RGB_ALPHA
 	))
     {
       fwprintf(stderr, L"Only the following color types are supported: 8-bits with palette, 24-bits RGB, 32-bits RGBA.\n");
