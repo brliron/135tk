@@ -6,10 +6,14 @@
 
 typedef struct file_footer_s
 {
-	uint32_t file_desc_size;
-	uint32_t nb_files;
 	uint32_t unk1;
-	uint32_t unk2; // unused
+	uint32_t unk2;
+	uint32_t unk3; // Non-zero (4 bytes filled)
+	uint32_t unk4;
+	uint32_t unk5;
+	uint32_t file_desc_size; // 0x18
+	uint32_t nb_files;
+	uint32_t footer_size; // must be 0x20
 } file_footer_t;
 
 typedef struct file_desc_s

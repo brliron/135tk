@@ -69,11 +69,143 @@ void filenames_cache_free(filenames_cache_t *cache)
 
 
 
-int write_dat_file(filenames_cache_t *filenames_cache, const char *out_dir, uint32_t hash, const uint8_t *data, size_t size)
+#define IMUL_1(x) imul(&edx, &eax, eax, x);
+#define IMUL_3(x, y, z) imul(NULL, &x, y, z)
+void imul(uint32_t *dst_high, uint32_t *dst_low, uint32_t src_1, uint32_t src_2)
+{
+	int64_t ret = ((int64_t)(int32_t)src_1) * (int32_t)src_2;
+	if (dst_high) {
+		*dst_high = ret >> 32;
+	}
+	*dst_low = (uint32_t)ret;
+}
+
+void decrypt(uint8_t *buffer, size_t size, size_t offset_in_file)
+{
+	uint32_t *buffer_int_array = (uint32_t*)buffer;
+	uint32_t eax, ebx, ecx, edx, /* ebp, */ esi, edi;
+
+	// uint32_t param1 = (uint32_t)buffer;
+	uint32_t param2 = 0;
+	uint32_t param3 = size;
+	// Param 4 is an object with the header size and the file size
+
+	// eax = param4
+	edx = param3;
+	if (1) {
+		ecx = size;
+		ecx ^= offset_in_file; // from param4
+		edx = param3 >> 2;
+	}
+
+	eax = param2 >> 2;
+	// ebp = param1;
+	ecx += eax;
+
+	while (edx > 0) {
+		uint32_t stack_1 = edx;
+		eax = ecx;
+		edx = 0x5E4789C9;
+		esi = ecx;
+		edi = 0x5E4789C9;
+
+		// copy
+		IMUL_1(edx);
+		eax = edx;
+		edx = (int32_t)edx >> 0x0E;
+		eax >>= 0x1F;
+		edx += eax;
+		IMUL_3(eax, edx, 0xADC8);
+		IMUL_3(edx, edx, 0xFFFFF2B9);
+		esi -= eax;
+		IMUL_3(eax, esi, 0xBC8F);
+		ebx = eax + edx;
+		esi = eax + edx + 0x7FFFFFFF;
+
+		if ((int32_t)ebx > 0) {
+			esi = ebx;
+		}
+		eax = esi;
+		ebx = esi;
+
+		// paste
+		IMUL_1(edi); // edi instead of edx
+		eax = edx;
+		edx = (int32_t)edx >> 0x0E;
+		eax >>= 0x1F;
+		edx += eax;
+		IMUL_3(eax, edx, 0xADC8);
+		IMUL_3(edx, edx, 0xFFFFF2B9);
+		ebx -= eax; // ebx instead of esi
+		IMUL_3(eax, ebx, 0xBC8F); // same
+		edi = eax + edx; // edi instead of ebx
+		ebx = eax + edx + 0x7FFFFFFF; // ebx instead of edi
+
+		edx = 0x5E4789C9;
+		if ((int32_t)edi > 0) {
+			ebx = edi;
+		}
+
+		esi <<= 8;
+		eax = ebx;
+		edi = ebx & 0xFF;
+
+		// paste
+		IMUL_1(edx); // edx instead of edi
+		edi |= esi; // Added in the middle
+		eax = edx;
+		edx = (int32_t)edx >> 0x0E;
+		eax >>= 0x1F;
+		edx += eax;
+		IMUL_3(eax, edx, 0xADC8);
+		IMUL_3(edx, edx, 0xFFFFF2B9);
+		ebx -= eax; // ebx instead of esi
+		IMUL_3(eax, ebx, 0xBC8F); // same
+		esi = eax + edx; // esi instead of ebx
+		ebx = eax + edx + 0x7FFFFFFF; // ebx instead of edi
+
+		edx = 0x5E4789C9;
+		if ((int32_t)esi > 0) {
+			ebx = esi;
+		}
+
+		edi <<= 8;
+		eax = ebx;
+		esi = ebx & 0xFF;
+
+		// paste
+		IMUL_1(edx); // edx instead of edi
+		esi |= edi; // Added in the middle
+		eax = edx;
+		edx = (int32_t)edx >> 0x0E;
+		eax >>= 0x1F;
+		edx += eax;
+		IMUL_3(eax, edx, 0xADC8);
+		IMUL_3(edx, edx, 0xFFFFF2B9);
+		ebx -= eax; // ebx instead of esi
+		IMUL_3(eax, ebx, 0xBC8F); // same
+		edi = eax + edx; // edi instead of ebx
+		eax = eax + edx + 0xFF; // Completely different
+
+		edx = stack_1;
+		if ((int32_t)edi > 0) {
+			eax = edi;
+		}
+		esi <<= 8;
+		ecx++;
+		eax &= 0xFF;
+		eax |= esi;
+		*buffer_int_array ^= eax;
+		buffer_int_array++;
+		edx--;
+	}
+}
+
+int write_dat_file(filenames_cache_t *filenames_cache, const char *out_dir, uint32_t hash, const uint8_t *data, size_t size, size_t offset_in_file)
 {
 	uint8_t *buffer = malloc(size);
 	memcpy(buffer, data, size);
-	decrypt_file(buffer, size);
+	decrypt(buffer, size, offset_in_file);
 
 	char name_buffer[26];
 	const char *name = filenames_cache_get(filenames_cache, hash);
@@ -121,21 +253,25 @@ int unpack_file(const char *in_file, const char *out_dir)
 		return 1;
 	}
 
+	decrypt(in_buffer + in_size - sizeof(file_footer_t), sizeof(file_footer_t), in_size - sizeof(file_footer_t));
+
 	file_footer_t *file_footer = (file_footer_t*)(in_buffer + in_size - sizeof(file_footer_t));
-	if (sizeof(file_desc_t) != 0x18 ||
-		file_footer->file_desc_size != 0x18 ||
-		file_footer->unk1 != 0x10 ||
-		file_footer->unk2 != 0) {
+	if (file_footer->footer_size != 0x20 ||
+		sizeof(file_desc_t) != 0x18 ||
+		file_footer->file_desc_size != 0x18) {
 		fprintf(stderr, "%s: invalid cga archive\n", in_file);
 		free(in_buffer);
 		filenames_cache_free(filenames_cache);
 		return 1;
 	}
 
-	file_desc_t *file_desc_table = (file_desc_t*)(in_buffer + in_size - sizeof(file_footer_t) - (sizeof(file_desc_t) * file_footer->nb_files));
+	size_t file_desc_table_size = sizeof(file_desc_t) * file_footer->nb_files;
+	size_t file_desc_table_offset = in_size - sizeof(file_footer_t) - file_desc_table_size;
+	decrypt(in_buffer + file_desc_table_offset, file_desc_table_size, file_desc_table_offset);
+	file_desc_t *file_desc_table = (file_desc_t*)(in_buffer + file_desc_table_offset);
 	for (size_t i = 0; i < file_footer->nb_files; i++) {
 		file_desc_t *desc = &file_desc_table[i];
-		write_dat_file(filenames_cache, out_dir, desc->key, &in_buffer[desc->offset], desc->size);
+		write_dat_file(filenames_cache, out_dir, desc->key, &in_buffer[desc->offset], desc->size, desc->offset);
 	}
 
 	free(in_buffer);

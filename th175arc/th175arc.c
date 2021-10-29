@@ -5,7 +5,7 @@
 void usage(const char *exe)
 {
 	printf("Usage: %s -x data.cga [output_dir]\n", exe);
-	printf("or:    %s -p data data.cga\n", exe);
+	printf("or:    %s -p data data.cga (doesn't work for now)\n", exe);
 }
 
 int main(int argc, const char **argv)
@@ -27,6 +27,7 @@ int main(int argc, const char **argv)
 		}
 		return unpack_file(in_file, out_dir);
 	}
+	/*
 	else if (strcmp(argv[1], "-p") == 0) {
 		if (argc != 4) {
 			usage(argv[0]);
@@ -36,6 +37,7 @@ int main(int argc, const char **argv)
 		const char *out_file  = argv[3];
 		return repack_file(in_dir, out_file);
 	}
+	*/
 	else {
 		usage(argv[0]);
 	}
