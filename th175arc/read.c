@@ -226,6 +226,9 @@ int write_dat_file(filenames_cache_t *filenames_cache, const char *out_dir, uint
 		else if (memcmp(buffer, "OggS", 4) == 0) {
 			strcat(name_buffer, ".ogg");
 		}
+		else if (memcmp(buffer, "OTTO", 4) == 0) {
+			strcat(name_buffer, ".otf");
+		}
 		else if (memcmp(buffer, "\xEF\xBB\xBF", 3) == 0) {
 			strcat(name_buffer, ".txt");
 		}
