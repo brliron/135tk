@@ -827,6 +827,7 @@
   "data\\map\\fire.tilemap",
   "data\\map\\forest.tilemap",
   "data\\map\\forest_2.tilemap",
+  "data\\map\\forest_object_0000.gif",
   "data\\map\\gen_forest.nut",
   "data\\map\\gen_forest_2.nut",
   "data\\map\\gen_town.nut",
