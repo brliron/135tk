@@ -171,19 +171,27 @@ int repack_file(const char *in_dir,  const char *out_file)
 		desc[i].key = calc_hash(files_list[i] + strlen(in_dir) + strlen("/"));
 		desc[i].offset = offset;
 		desc[i].size = size;
-		decrypt_file(file, size);
+		decrypt(file, size, offset);
 		fwrite(file, size, 1, out);
 		free(file);
 	}
 
-	fwrite(desc, sizeof(file_desc_t) * files_count, 1, out);
+	size_t desc_size = sizeof(file_desc_t) * files_count;
+	decrypt((uint8_t*)desc, desc_size, offset);
+	fwrite(desc, desc_size, 1, out);
 	free(desc);
+	offset += desc_size;
 
 	file_footer_t footer;
 	footer.file_desc_size = sizeof(file_desc_t);
 	footer.nb_files = files_count;
-	footer.unk1 = 0x10;
+	footer.footer_size = sizeof(file_footer_t);
+	footer.unk1 = 0;
 	footer.unk2 = 0;
+	footer.unk3 = 0; // TODO: figure out the correct value
+	footer.unk4 = 0;
+	footer.unk5 = 0;
+	decrypt((uint8_t*)&footer, sizeof(file_footer_t), offset);
 	fwrite(&footer, sizeof(file_footer_t), 1, out);
 
 	fclose(out);
