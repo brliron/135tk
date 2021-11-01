@@ -27,7 +27,7 @@ int unpack_file(const char *in_file, const char *out_dir);
 int repack_file(const char *in_dir,  const char *out_file);
 
 uint32_t calc_hash(const char *filename);
-void decrypt_file(uint8_t *buffer, size_t size);
+void decrypt(uint8_t *buffer, size_t size, size_t offset_in_file);
 const char *make_path(const char *left, const char *right);
 uint8_t *read_file(const char *path, size_t *size);
 int write_file(const char *path, const uint8_t *data, size_t size);
