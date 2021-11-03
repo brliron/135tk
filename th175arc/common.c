@@ -159,6 +159,8 @@ void decrypt_asm(uint8_t *buffer, size_t size, size_t offset_in_file)
 		edx--;
 	}
 }
+#undef IMUL_1
+#undef IMUL_3
 
 void do_partial_xor(uint8_t *dst, uint8_t *src, size_t size)
 {
@@ -167,120 +169,41 @@ void do_partial_xor(uint8_t *dst, uint8_t *src, size_t size)
     }
 }
 
-// More readable version (well, not really yet)
+// More readable version of the decrypt code.
+// This one also doesn't require the input buffer size to be divisible by 4
+uint32_t do_decrypt_step(uint32_t key)
+{
+    int64_t a = key * 0x5E4789C9ll;
+	uint32_t b = (a >> 0x2E) + (a >> 0x3F);
+	uint32_t ret = (key - b * 0xADC8) * 0xBC8F + b * 0xFFFFF2B9;
+	if ((int32_t)ret <= 0) {
+        ret += 0x7FFFFFFF;
+    }
+	return ret;
+}
+
 void decrypt(uint8_t *buffer, size_t size, size_t offset_in_file)
 {
-	uint32_t *buffer_int_array = (uint32_t*)buffer;
-	uint32_t eax, ebx, ecx, edx, esi, edi;
+	// File key, derived from the file's size and its offset in the archive file.
+    uint32_t file_key = size ^ offset_in_file;
 
-	ecx = size ^ offset_in_file;
-    while (size > 0) {
-		eax = ecx;
-		edx = 0x5E4789C9;
-		esi = ecx;
-		edi = 0x5E4789C9;
+    for (size_t pos = 0; pos < size; pos += 4) {
+        uint32_t xor = 0;
+        uint32_t tmp_key = file_key;
+        for (size_t i = 0; i < 4; i++) {
+            tmp_key = do_decrypt_step(tmp_key);
+            xor = (xor << 8) | (tmp_key & 0xFF);
+        }
 
-		// copy
-		IMUL_1(edx);
-		eax = edx;
-		edx = (int32_t)edx >> 0x0E;
-		eax >>= 0x1F;
-		edx += eax;
-		IMUL_3(eax, edx, 0xADC8);
-		IMUL_3(edx, edx, 0xFFFFF2B9);
-		esi -= eax;
-		IMUL_3(eax, esi, 0xBC8F);
-		ebx = eax + edx;
-		esi = eax + edx + 0x7FFFFFFF;
-
-		if ((int32_t)ebx > 0) {
-			esi = ebx;
-		}
-		eax = esi;
-		ebx = esi;
-
-		// paste
-		IMUL_1(edi); // edi instead of edx
-		eax = edx;
-		edx = (int32_t)edx >> 0x0E;
-		eax >>= 0x1F;
-		edx += eax;
-		IMUL_3(eax, edx, 0xADC8);
-		IMUL_3(edx, edx, 0xFFFFF2B9);
-		ebx -= eax; // ebx instead of esi
-		IMUL_3(eax, ebx, 0xBC8F); // same
-		edi = eax + edx; // edi instead of ebx
-		ebx = eax + edx + 0x7FFFFFFF; // ebx instead of edi
-
-		edx = 0x5E4789C9;
-		if ((int32_t)edi > 0) {
-			ebx = edi;
-		}
-
-		esi <<= 8;
-		eax = ebx;
-		edi = ebx & 0xFF;
-
-		// paste
-		IMUL_1(edx); // edx instead of edi
-		edi |= esi; // Added in the middle
-		eax = edx;
-		edx = (int32_t)edx >> 0x0E;
-		eax >>= 0x1F;
-		edx += eax;
-		IMUL_3(eax, edx, 0xADC8);
-		IMUL_3(edx, edx, 0xFFFFF2B9);
-		ebx -= eax; // ebx instead of esi
-		IMUL_3(eax, ebx, 0xBC8F); // same
-		esi = eax + edx; // esi instead of ebx
-		ebx = eax + edx + 0x7FFFFFFF; // ebx instead of edi
-
-		edx = 0x5E4789C9;
-		if ((int32_t)esi > 0) {
-			ebx = esi;
-		}
-
-		edi <<= 8;
-		eax = ebx;
-		esi = ebx & 0xFF;
-
-		// paste
-		IMUL_1(edx); // edx instead of edi
-		esi |= edi; // Added in the middle
-		eax = edx;
-		edx = (int32_t)edx >> 0x0E;
-		eax >>= 0x1F;
-		edx += eax;
-		IMUL_3(eax, edx, 0xADC8);
-		IMUL_3(edx, edx, 0xFFFFF2B9);
-		ebx -= eax; // ebx instead of esi
-		IMUL_3(eax, ebx, 0xBC8F); // same
-		edi = eax + edx; // edi instead of ebx
-		eax = eax + edx + 0xFF; // Completely different
-
-		if ((int32_t)edi > 0) {
-			eax = edi;
-		}
-		esi <<= 8;
-
-		ecx++;
-		eax &= 0xFF;
-		eax |= esi;
-        if (size >= 4) {
-            *buffer_int_array ^= eax;
+        if (pos + 4 < size) {
+            *(uint32_t*)(buffer + pos) ^= xor;
         }
         else {
-            do_partial_xor((uint8_t*)buffer_int_array, (uint8_t*)&eax, size);
+            do_partial_xor(buffer + pos, (uint8_t*)&xor, size - pos);
         }
-		buffer_int_array++;
-		if (size < 4) {
-            break;
-        }
-        size -= 4;
+		file_key++;
 	}
 }
-#undef IMUL_1
-#undef IMUL_3
 
 uint8_t *read_file(const char *path, size_t *size)
 {
@@ -295,7 +218,7 @@ uint8_t *read_file(const char *path, size_t *size)
 	fseek(file, 0, SEEK_SET);
 
 	uint8_t *buffer = malloc(*size);
-	if (fread(buffer, *size, 1, file) == 0) {
+	if (fread(buffer, *size, 1, file) == 0 && ferror(file)) {
 		perror(path);
 		fclose(file);
 		free(buffer);
