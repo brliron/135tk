@@ -172,15 +172,16 @@ int repack_file(const char *in_dir,  const char *out_file)
 		desc[i].offset = offset;
 		desc[i].size = size;
 		decrypt(file, size, offset);
+		offset += size;
 		fwrite(file, size, 1, out);
 		free(file);
 	}
 
 	size_t desc_size = sizeof(file_desc_t) * files_count;
 	decrypt((uint8_t*)desc, desc_size, offset);
+	offset += desc_size;
 	fwrite(desc, desc_size, 1, out);
 	free(desc);
-	offset += desc_size;
 
 	file_footer_t footer;
 	footer.file_desc_size = sizeof(file_desc_t);
@@ -188,7 +189,7 @@ int repack_file(const char *in_dir,  const char *out_file)
 	footer.footer_size = sizeof(file_footer_t);
 	footer.unk1 = 0;
 	footer.unk2 = 0;
-	footer.unk3 = 0; // TODO: figure out the correct value
+	footer.unk3 = 0; // Have a non-zero value in the game's original files, but seems to work with zero
 	footer.unk4 = 0;
 	footer.unk5 = 0;
 	decrypt((uint8_t*)&footer, sizeof(file_footer_t), offset);
