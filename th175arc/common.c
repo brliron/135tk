@@ -38,7 +38,8 @@ void imul(uint32_t *dst_high, uint32_t *dst_low, uint32_t src_1, uint32_t src_2)
 	*dst_low = (uint32_t)ret;
 }
 
-void decrypt(uint8_t *buffer, size_t size, size_t offset_in_file)
+// ASM-like version
+void decrypt_asm(uint8_t *buffer, size_t size, size_t offset_in_file)
 {
 	uint32_t *buffer_int_array = (uint32_t*)buffer;
 	uint32_t eax, ebx, ecx, edx, /* ebp, */ esi, edi;
@@ -156,6 +157,126 @@ void decrypt(uint8_t *buffer, size_t size, size_t offset_in_file)
 		*buffer_int_array ^= eax;
 		buffer_int_array++;
 		edx--;
+	}
+}
+
+void do_partial_xor(uint8_t *dst, uint8_t *src, size_t size)
+{
+    for (size_t i = 0; i < size; i++) {
+        dst[i] ^= src[i];
+    }
+}
+
+// More readable version (well, not really yet)
+void decrypt(uint8_t *buffer, size_t size, size_t offset_in_file)
+{
+	uint32_t *buffer_int_array = (uint32_t*)buffer;
+	uint32_t eax, ebx, ecx, edx, esi, edi;
+
+	ecx = size ^ offset_in_file;
+    while (size > 0) {
+		eax = ecx;
+		edx = 0x5E4789C9;
+		esi = ecx;
+		edi = 0x5E4789C9;
+
+		// copy
+		IMUL_1(edx);
+		eax = edx;
+		edx = (int32_t)edx >> 0x0E;
+		eax >>= 0x1F;
+		edx += eax;
+		IMUL_3(eax, edx, 0xADC8);
+		IMUL_3(edx, edx, 0xFFFFF2B9);
+		esi -= eax;
+		IMUL_3(eax, esi, 0xBC8F);
+		ebx = eax + edx;
+		esi = eax + edx + 0x7FFFFFFF;
+
+		if ((int32_t)ebx > 0) {
+			esi = ebx;
+		}
+		eax = esi;
+		ebx = esi;
+
+		// paste
+		IMUL_1(edi); // edi instead of edx
+		eax = edx;
+		edx = (int32_t)edx >> 0x0E;
+		eax >>= 0x1F;
+		edx += eax;
+		IMUL_3(eax, edx, 0xADC8);
+		IMUL_3(edx, edx, 0xFFFFF2B9);
+		ebx -= eax; // ebx instead of esi
+		IMUL_3(eax, ebx, 0xBC8F); // same
+		edi = eax + edx; // edi instead of ebx
+		ebx = eax + edx + 0x7FFFFFFF; // ebx instead of edi
+
+		edx = 0x5E4789C9;
+		if ((int32_t)edi > 0) {
+			ebx = edi;
+		}
+
+		esi <<= 8;
+		eax = ebx;
+		edi = ebx & 0xFF;
+
+		// paste
+		IMUL_1(edx); // edx instead of edi
+		edi |= esi; // Added in the middle
+		eax = edx;
+		edx = (int32_t)edx >> 0x0E;
+		eax >>= 0x1F;
+		edx += eax;
+		IMUL_3(eax, edx, 0xADC8);
+		IMUL_3(edx, edx, 0xFFFFF2B9);
+		ebx -= eax; // ebx instead of esi
+		IMUL_3(eax, ebx, 0xBC8F); // same
+		esi = eax + edx; // esi instead of ebx
+		ebx = eax + edx + 0x7FFFFFFF; // ebx instead of edi
+
+		edx = 0x5E4789C9;
+		if ((int32_t)esi > 0) {
+			ebx = esi;
+		}
+
+		edi <<= 8;
+		eax = ebx;
+		esi = ebx & 0xFF;
+
+		// paste
+		IMUL_1(edx); // edx instead of edi
+		esi |= edi; // Added in the middle
+		eax = edx;
+		edx = (int32_t)edx >> 0x0E;
+		eax >>= 0x1F;
+		edx += eax;
+		IMUL_3(eax, edx, 0xADC8);
+		IMUL_3(edx, edx, 0xFFFFF2B9);
+		ebx -= eax; // ebx instead of esi
+		IMUL_3(eax, ebx, 0xBC8F); // same
+		edi = eax + edx; // edi instead of ebx
+		eax = eax + edx + 0xFF; // Completely different
+
+		if ((int32_t)edi > 0) {
+			eax = edi;
+		}
+		esi <<= 8;
+
+		ecx++;
+		eax &= 0xFF;
+		eax |= esi;
+        if (size >= 4) {
+            *buffer_int_array ^= eax;
+        }
+        else {
+            do_partial_xor((uint8_t*)buffer_int_array, (uint8_t*)&eax, size);
+        }
+		buffer_int_array++;
+		if (size < 4) {
+            break;
+        }
+        size -= 4;
 	}
 }
 #undef IMUL_1
