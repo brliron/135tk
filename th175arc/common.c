@@ -195,7 +195,7 @@ void decrypt(uint8_t *buffer, size_t size, size_t offset_in_file)
             xor = (xor << 8) | (tmp_key & 0xFF);
         }
 
-        if (pos + 4 < size) {
+        if (pos + 4 <= size) {
             *(uint32_t*)(buffer + pos) ^= xor;
         }
         else {
