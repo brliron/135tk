@@ -59,7 +59,7 @@ static void     frame_subentry2(FILE* fp, unsigned int entry_index, json_t* js)
 #if __linux__
   printf("value = 0x%.16lx\n", value);
 #else
-  printf("value = 0x%.16I64x\n", value);
+  printf("value = 0x%.16llx\n", value);
 #endif
 }
 
@@ -78,7 +78,7 @@ static void     frame(FILE* fp, unsigned int entry_index, json_t* js)
 #if __linux__
   printf("\n      unk3 = 0x%.16lx, unk4 = %d\n", unk3, unk4);
 #else
-  printf("\n      unk3 = 0x%.16I64x, unk4 = %d\n", unk3, unk4);
+  printf("\n      unk3 = 0x%.16llx, unk4 = %d\n", unk3, unk4);
 #endif
 
   for (i = 0; i < 3; i++)
