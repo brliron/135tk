@@ -73,7 +73,9 @@ int write_dat_file(filenames_cache_t *filenames_cache, const char *out_dir, uint
 {
 	uint8_t *buffer = malloc(size);
 	memcpy(buffer, data, size);
-	decrypt(buffer, size, offset_in_file);
+	if (hash != GAME_EXE_HASH) {
+		decrypt(buffer, size, offset_in_file);
+	}
 
 	char name_buffer[26];
 	const char *name = filenames_cache_get(filenames_cache, hash);

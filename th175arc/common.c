@@ -15,7 +15,7 @@ uint32_t calc_hash(const char *filename)
 {
 	if (strcmp(filename, "game.exe") == 0) {
 		// I don't know the filename for this hash, but I need to have one, so I arbitrarily decide it's "game.exe".
-		return 0x1f47c0c8;
+		return GAME_EXE_HASH;
 	}
 
 	uint64_t hash = 0x811C9DC5;

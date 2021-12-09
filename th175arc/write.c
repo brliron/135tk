@@ -171,7 +171,9 @@ int repack_file(const char *in_dir,  const char *out_file)
 		desc[i].key = calc_hash(files_list[i] + strlen(in_dir) + strlen("/"));
 		desc[i].offset = offset;
 		desc[i].size = size;
-		decrypt(file, size, offset);
+        if (desc[i].key != GAME_EXE_HASH) {
+            decrypt(file, size, offset);
+        }
 		offset += size;
 		fwrite(file, size, 1, out);
 		free(file);
