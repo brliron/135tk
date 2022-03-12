@@ -18350,6 +18350,7 @@ data\background\bg08\床２\mat1.mat
 data\background\bg08\床２\mat4.mat
 data\background\bg08\床３1\11 - Default.mat
 data\background\bg08\床３1\mat4.mat
+data\background\bg08\床３2\mat4.mat
 data\background\bg08\床３\11 - Default.mat
 data\background\bg08\床３\mat1.mat
 data\background\bg08\床３\mat4.mat
