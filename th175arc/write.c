@@ -123,13 +123,13 @@ void free_files_list(char **list)
 	free(list);
 }
 
-// We always want to write game.exe first if it exists
+// We always want to write payloader.exe first if it exists
 // so we move it at the top of the list.
-void move_game_exe_first(char **list, const char *in_dir)
+void move_payloader_exe_first(char **list, const char *in_dir)
 {
-	// If game.exe is already first, no need to move it
+	// If payloader.exe is already first, no need to move it
 	for (int i = 1; list[i]; i++) {
-		if (strcmp(list[i] + strlen(in_dir) + strlen("/"), "game.exe") == 0) {
+		if (strcmp(list[i] + strlen(in_dir) + strlen("/"), "payloader.exe") == 0) {
 			// TODO: test
 			printf("Moving %s to 1st position\n", list[i]);
 			char *tmp = list[0];
@@ -145,7 +145,7 @@ int repack_file(const char *in_dir,  const char *out_file)
 	if (files_list == NULL) {
 		return 1;
 	}
-	move_game_exe_first(files_list, in_dir);
+	move_payloader_exe_first(files_list, in_dir);
 
 	size_t files_count;
 	for (files_count = 0; files_list[files_count]; files_count++) {
@@ -171,7 +171,7 @@ int repack_file(const char *in_dir,  const char *out_file)
 		desc[i].key = calc_hash(files_list[i] + strlen(in_dir) + strlen("/"));
 		desc[i].offset = offset;
 		desc[i].size = size;
-        if (desc[i].key != GAME_EXE_HASH) {
+        if (desc[i].key != PAYLOADER_EXE_HASH) {
             decrypt(file, size, offset);
         }
 		offset += size;

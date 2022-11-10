@@ -25,7 +25,7 @@ typedef struct file_desc_s
 
 int unpack_file(const char *in_file, const char *out_dir);
 int repack_file(const char *in_dir,  const char *out_file);
-#define GAME_EXE_HASH 0x1f47c0c8
+#define PAYLOADER_EXE_HASH 0x1f47c0c8
 
 uint32_t calc_hash(const char *filename);
 void decrypt(uint8_t *buffer, size_t size, size_t offset_in_file);

@@ -13,11 +13,6 @@
 
 uint32_t calc_hash(const char *filename)
 {
-	if (strcmp(filename, "game.exe") == 0) {
-		// I don't know the filename for this hash, but I need to have one, so I arbitrarily decide it's "game.exe".
-		return GAME_EXE_HASH;
-	}
-
 	uint64_t hash = 0x811C9DC5;
 	for (int i = 0; filename[i]; i++) {
 		hash = ((hash ^ filename[i]) * 0x1000193) & 0xFFFFFFFF;

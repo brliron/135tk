@@ -73,7 +73,7 @@ int write_dat_file(filenames_cache_t *filenames_cache, const char *out_dir, uint
 {
 	uint8_t *buffer = malloc(size);
 	memcpy(buffer, data, size);
-	if (hash != GAME_EXE_HASH) {
+	if (hash != PAYLOADER_EXE_HASH) {
 		decrypt(buffer, size, offset_in_file);
 	}
 

@@ -1807,6 +1807,7 @@
   "data/script/gameobject/niwatari/action/stay.nut",
   "data/script/gameobject/niwatari/action_pattern.csv",
   "data/script/gameobject/niwatari/action_pattern_flandre.csv",
+  "data/script/gameobject/niwatari/action_pattern_gouyoku.csv",
   "data/script/gameobject/niwatari/com_action.nut",
   "data/script/gameobject/niwatari/com_ai.nut",
   "data/script/gameobject/niwatari/handler/.index",
@@ -2133,7 +2134,9 @@
   "data/script/gameobject/utuho/action/stay.nut",
   "data/script/gameobject/utuho/action_pattern.csv",
   "data/script/gameobject/utuho/action_pattern_flandre.csv",
+  "data/script/gameobject/utuho/action_pattern_gouyoku.csv",
   "data/script/gameobject/utuho/action_pattern_jyoon.csv",
+  "data/script/gameobject/utuho/action_pattern_toutetu.csv",
   "data/script/gameobject/utuho/com_ai.nut",
   "data/script/gameobject/utuho/handler/.index",
   "data/script/gameobject/utuho/handler/on_begin_action.nut",
@@ -6406,5 +6409,6 @@
   "modules/system.avs",
   "modules/tilemap.avs",
   "modules/transcoder_icu.avs",
-  "modules/vspace.avs"
+  "modules/vspace.avs",
+  "payloader.exe"
 ]
