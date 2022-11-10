@@ -6409,5 +6409,6 @@
   "modules/system.avs",
   "modules/tilemap.avs",
   "modules/transcoder_icu.avs",
-  "modules/vspace.avs"
+  "modules/vspace.avs",
+  "payloader.exe"
 ]
