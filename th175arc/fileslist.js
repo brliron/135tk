@@ -3594,6 +3594,7 @@
   "data/sprite/map_parts/toutetu.gif.ini",
   "data/sprite/map_parts/utuho.gif",
   "data/sprite/map_parts/utuho.gif.ini",
+  "data/sprite/map_parts/warp_door_easy - コピー.png",
   "data/sprite/map_parts/warp_door_easy.png",
   "data/sprite/map_parts/yamame.gif",
   "data/sprite/map_parts/yamame.gif.ini",
