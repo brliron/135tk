@@ -5946,6 +5946,12 @@ data\actor\jyoon\test_damage_down0007.bmp
 data\actor\jyoon\test_damage_down0008.bmp
 data\actor\jyoon\test_damage_down0009.bmp
 data\actor\jyoon\test_damage_down0010.bmp
+data\actor\jyoon\test_damage_down0011.bmp
+data\actor\jyoon\test_damage_down0012.bmp
+data\actor\jyoon\test_damage_down0013.bmp
+data\actor\jyoon\test_damage_down0014.bmp
+data\actor\jyoon\test_damage_down0015.bmp
+data\actor\jyoon\test_damage_down0016.bmp
 data\actor\jyoon\test_gold_typhoon0000.bmp
 data\actor\jyoon\test_gold_typhoon0001.bmp
 data\actor\jyoon\test_gold_typhoon0002.bmp
@@ -7210,6 +7216,10 @@ data\actor\koishi\test_stun0002.bmp
 data\actor\koishi\test_stun0003.bmp
 data\actor\koishi\test_stun0004.bmp
 data\actor\koishi\test_stun0005.bmp
+data\actor\koishi\test_team_begin0000.bmp
+data\actor\koishi\test_team_begin0001.bmp
+data\actor\koishi\test_team_begin0002.bmp
+data\actor\koishi\test_team_begin0003.bmp
 data\actor\koishi\test_turn0000.bmp
 data\actor\koishi\test_turn0001.bmp
 data\actor\koishi\test_turn0002.bmp
@@ -8478,6 +8488,8 @@ data\actor\mamizou\team_begin_A0013.bmp
 data\actor\mamizou\team_begin_A0014.bmp
 data\actor\mamizou\team_begin_A0015.bmp
 data\actor\mamizou\test_spellB_torii.bmp
+data\actor\mamizou\test_taiko000.png
+data\actor\mamizou\test_taiko001.png
 data\actor\mamizou\texture\Taiko_shot000.png
 data\actor\mamizou\texture\Taiko_shot001.png
 data\actor\mamizou\texture\UFObeam0000.png
@@ -11762,6 +11774,7 @@ data\actor\nitori\team_begin_A0006.bmp
 data\actor\nitori\team_begin_A0007.bmp
 data\actor\nitori\testR_climaxBack0000.png
 data\actor\nitori\testR_climaxBack0003.png
+data\actor\nitori\testR_occult0003.png
 data\actor\nitori\testR_occult0006.png
 data\actor\nitori\test_atkDashLow0000.bmp
 data\actor\nitori\test_atkDashLow0001.bmp
@@ -11782,7 +11795,6 @@ data\actor\nitori\test_occultB0000.bmp
 data\actor\nitori\test_occultB0003.bmp
 data\actor\nitori\test_occultB0004.bmp
 data\actor\nitori\test_occultLoop0000.bmp
-data\actor\nitori\testr_occult0003.png
 data\actor\nitori\texture\StarFlare.bmp
 data\actor\nitori\texture\ball.png
 data\actor\nitori\texture\bigWave.png
@@ -15922,6 +15934,17 @@ data\actor\udonge\test_grab0000.bmp
 data\actor\udonge\test_grab0001.bmp
 data\actor\udonge\test_grab0002.bmp
 data\actor\udonge\test_grab0003.bmp
+data\actor\udonge\test_grab_failed0000.bmp
+data\actor\udonge\test_grab_failed0001.bmp
+data\actor\udonge\test_grab_failed0002.bmp
+data\actor\udonge\test_grab_failed0003.bmp
+data\actor\udonge\test_grab_failed0004.bmp
+data\actor\udonge\test_grab_failed0005.bmp
+data\actor\udonge\test_team_begin_doremy0000.bmp
+data\actor\udonge\test_team_begin_doremy0001.bmp
+data\actor\udonge\test_team_begin_doremy0002.bmp
+data\actor\udonge\test_team_begin_doremy0003.bmp
+data\actor\udonge\test_team_begin_doremy0004.bmp
 data\actor\udonge\texture\animal0000.png
 data\actor\udonge\texture\animal0001.png
 data\actor\udonge\texture\animal0002.png
