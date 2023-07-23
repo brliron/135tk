@@ -13794,6 +13794,7 @@ data\actor\script\battle.nut
 data\actor\script\boss_function.nut
 data\actor\script\boss_member.nut
 data\actor\script\class_other.nut
+data\actor\script\com_boss.nut
 data\actor\script\com_function.nut
 data\actor\script\com_member.nut
 data\actor\script\com_update.nut
@@ -13960,6 +13961,8 @@ data\actor\shion\texture\face_slave_shion_r.png
 data\actor\shion\texture\face_spell_cut.png
 data\actor\shion\texture\shot_negative_000.png
 data\actor\shion\texture\shot_negative_001.png
+data\actor\shion\texture\shot_negative_002.png
+data\actor\shion\texture\shot_negative_003.png
 data\actor\shion\texture\shot_wealth0000.png
 data\actor\shion\texture\spell_use_cut.png
 data\actor\shion\texture\spell_use_cut_reverse.png
@@ -21959,6 +21962,9 @@ data\effect\Texture\Effect\doremy_sheep_000.nhtex
 data\effect\Texture\Effect\doremy_sheep_ball.nhtex
 data\effect\Texture\Effect\doremy_vacum_000.nhtex
 data\effect\Texture\Effect\expload_000.nhtex
+data\effect\Texture\Effect\expload_001.nhtex
+data\effect\Texture\Effect\expload_002.nhtex
+data\effect\Texture\Effect\expload_003.nhtex
 data\effect\Texture\Effect\fadeBall0000.nhtex
 data\effect\Texture\Effect\fadeBall0001.nhtex
 data\effect\Texture\Effect\fadeBall0002.nhtex
@@ -22176,6 +22182,7 @@ data\effect\marisa_pBomb.eft
 data\effect\marisa_shotFire.eft
 data\effect\marisa_spark.eft
 data\effect\marisa_sparkPre.eft
+data\effect\marisa_spark_light.eft
 data\effect\marisa_strtHit.eft
 data\effect\mask_test.eft
 data\effect\miko_baria.eft
@@ -23838,6 +23845,7 @@ data\script\talk\talk_generate.nut
 data\script\talk\talk_image.nut
 data\script\talk\talk_subtitle.nut
 data\script\talk\talk_text.nut
+data\script\trophy.nut
 data\script\version.nut
 data\script\vs_mode.nut
 data\script\win.nut
