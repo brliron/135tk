@@ -21975,6 +21975,7 @@ data\effect\Texture\Effect\fireAura_blue0000.nhtex
 data\effect\Texture\Effect\fireChip0000.nhtex
 data\effect\Texture\Effect\fireChip0001.nhtex
 data\effect\Texture\Effect\fireWork0000.nhtex
+data\effect\Texture\Effect\fireWork0001.nhtex
 data\effect\Texture\Effect\fire_ball0000.nhtex
 data\effect\Texture\Effect\glass_break0000.nhtex
 data\effect\Texture\Effect\glass_break0001.nhtex
