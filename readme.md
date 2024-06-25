@@ -92,10 +92,10 @@ You can also run it with a partial JSON file. For example, if the JSON file you 
 A C rewrite of Riatre's TFBMTool, with support for 8-bits images with palette.  
 This one always overwrites the TFBM file in place, because I've never seen anyone actually using the original in another way.  
 
-Usage (extraction): `./TFBMTool /x tfbm_file.[bmp|png] [palette_XXX.bmp]`  
+Usage (extraction): `./TFBMTool-alt /x tfbm_file.[bmp|png] [palette_XXX.bmp]`  
 The palette is optional (and not used) for 24-bpp and 32-bpp TFBM files. It is mandatory for 8-bpp TFBM files, and the extracted file will be a 8-bpp PNG file with a palette.  
 
-Usage (repacking): `./TFBMTool /p tfbm_file.[bmp|png]`
+Usage (repacking): `./TFBMTool-alt /p tfbm_file.[bmp|png]`
 
 ### extractBM-alt
 A C rewrite of Riatre's extractBM using TFBMTool-alt. It searches for every png and bmp files in the current directory and its subdirectories (recursively), and calls TFBMTool-alt on them.  
