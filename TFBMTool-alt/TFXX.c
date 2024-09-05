@@ -59,7 +59,7 @@ FILE *TFXX_open_read(LPCWSTR fn, const char *in_magic, void *header, size_t head
   fread(magic, 4, 1, f);
   fread(&version, 1, 1, f);
   if (memcmp(in_magic, magic, 4) != 0 || version != 0) {
-    fwprintf(stderr, L"Error: %s: wrong magic or version\n", fn);
+    fwprintf(stderr, L"Error: %S: wrong magic or version\n", fn);
     fclose(f);
     return NULL;
   }

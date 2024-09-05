@@ -79,7 +79,7 @@ int convert_TFBM_to_PNG(LPCWSTR tfbm, LPCWSTR tfpa, LPCWSTR out_png)
     color_type = PNG_COLOR_TYPE_RGB_ALPHA;
   }
   else {
-    fwprintf(stderr, L"%s: unsupported bit depth: %d (only 8, 24 and 32 are supported).\n", out_png, header.bpp);
+    fwprintf(stderr, L"%S: unsupported bit depth: %d (only 8, 24 and 32 are supported).\n", out_png, header.bpp);
     if (palette) png_free(png_ptr, palette);
     if (tRNS) png_free(png_ptr, tRNS);
     png_destroy_write_struct(&png_ptr, &info_ptr);

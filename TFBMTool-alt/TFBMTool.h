@@ -20,7 +20,7 @@ char *TFXX_read(FILE *f, size_t comp_size, size_t uncomp_size);
 FILE *TFXX_open_write(LPCWSTR fn, const char *magic, const void *header, size_t header_size);
 void TFXX_write(FILE *f, const char *uncomp_data, size_t uncomp_size);
 int convert_TFBM_to_PNG(LPCWSTR tfbm, LPCWSTR tfpa, LPCWSTR out_png);
-int convert_PNG_to_TFBM(LPCWSTR png, LPCWSTR out_tfbm);
+int convert_PNG_to_TFBM(LPCWSTR png, LPCWSTR out_tfbm, LPCWSTR out_tfpa);
 
 // basedir is NOT const. It will be modified, but it will be returned to its original state after the call.
 void find_images(LPWSTR basedir, void (*callback)(LPCWSTR path));

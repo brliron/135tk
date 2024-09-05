@@ -28,7 +28,7 @@ void find_images(LPWSTR basedir, void (*callback)(LPCWSTR path))
 	{
 	  LPCWSTR ext = PathFindExtension(basedir);
 	  if (ext && (wcscmp(ext, L".png") == 0 || wcscmp(ext, L".bmp") == 0)) {
-	    wprintf(L"%s\n", basedir);
+	    wprintf(L"%S\n", basedir);
 	    callback(basedir);
 	  }
 	}
