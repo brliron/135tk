@@ -7,7 +7,7 @@ int wmain(int ac, wchar_t **av)
     wprintf(L"Usage: %S (/x|/p) in.[bmp|png] [palette.bmp]\n"
 	    "palette.bmp is used if (and only if) the input file is a 8-bit file with a palette.\n"
 	    "For /x, palette.bmp is required for 8-bit files, and is used as the palette for the input file.\n"
-	    "For /p, palette.bmp is optional, and if specified, will contain the file's palette.\n"
+	    "For /p, palette.bmp is optional, and if specified, will contain the file's palette\n"
 		"in the TFPA format.", av[0]);
     return 0;
   }

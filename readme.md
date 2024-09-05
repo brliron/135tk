@@ -95,7 +95,8 @@ This one always overwrites the TFBM file in place, because I've never seen anyon
 Usage (extraction): `./TFBMTool-alt /x tfbm_file.[bmp|png] [palette_XXX.bmp]`  
 The palette is optional (and not used) for 24-bpp and 32-bpp TFBM files. It is mandatory for 8-bpp TFBM files, and the extracted file will be a 8-bpp PNG file with a palette.  
 
-Usage (repacking): `./TFBMTool-alt /p tfbm_file.[bmp|png]`
+Usage (repacking): `./TFBMTool-alt /p tfbm_file.[bmp|png] [palette_XXX.bmp]`  
+The palette is not used for 24-bpp and 32-bpp PNG files. For 8-bpp PNG files, it is optional, and if specified, the PNG file's palette is dumped into it.
 
 ### extractBM-alt
 A C rewrite of Riatre's extractBM using TFBMTool-alt. It searches for every png and bmp files in the current directory and its subdirectories (recursively), and calls TFBMTool-alt on them.  
