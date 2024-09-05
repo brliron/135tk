@@ -167,7 +167,7 @@ const wchar_t* guess_extension(const BYTE* bytes, size_t size)
 		return L".bmp";
 	if (size >= 4 && memcmp(cbytes, "IBMB", 4) == 0)
 		return L".bmb";
-	if (size >= 4 && memcmp(cbytes, "MZ", 4) == 0)
+	if (size >= 2 && memcmp(cbytes, "MZ", 2) == 0)
 		return L".dll";
 	if (size >= 1 && bytes[0] == 17)
 		return L".pat";
