@@ -60,7 +60,7 @@ int main(int ac, const char** av)
       size_t size_in2 = ftell(fin2);
       fseek(fin2, 0, SEEK_SET);
       data = malloc(size_in2);
-      fread(data, size_in2, 1, fin);
+      fread(data, size_in2, 1, fin2);
       fclose(fin2);
 
       FILE *fout = fopen(av[2], "wb");
