@@ -32,4 +32,4 @@ $(NAME): $(OBJS)
 	$(LD) $(OBJS) -o $(NAME) $(LDFLAGS)
 
 clean:
-	rm $(NAME) $(OBJS)
+	rm -f $(NAME) $(OBJS)

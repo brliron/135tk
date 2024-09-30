@@ -1,11 +1,11 @@
 # Clean
-make -C Act-Nut-Lib clean
+make -C Act-Nut-lib clean
 make -C th135arc-alt clean
 rm -rf 135tk
 rm -rf 135tk.zip
 
 # Build
-make -C Act-Nut-Lib
+make -C Act-Nut-lib
 make -C th135arc-alt
 for dir in bmpfont nhtextool read_pat TFBMTool-alt th145arc th175arc; do
     echo "Building $dir..."
