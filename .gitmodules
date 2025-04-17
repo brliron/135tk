@@ -9,3 +9,6 @@
 	path = th135arc-alt/MIRACL
 	url = https://github.com/miracl/MIRACL
 	ignore = dirty
+[submodule "bmpfont"]
+	path = bmpfont
+	url = https://github.com/thpatch/bmpfont_aocf.git
