@@ -32,14 +32,14 @@ float	intToFloat(uint32_t in)
 
 static void     frame_subentry1_child(FILE* fp, unsigned int entry_index, json_t* js)
 {
-  uint8_t	unk1 = read_u8(fp, js, "unk1");
-  float		unk2 = read_float(fp, js, "unk2");
-  float		unk3 = read_float(fp, js, "unk3");
-  float		unk4 = read_float(fp, js, "unk4");
-  float		unk5 = read_float(fp, js, "unk5");
-  uint16_t	unk6 = read_u16(fp, js, "unk6"); // Converted to a uint32_t, then loaded in xmm0 with movd.
-  printf("        child %d: unk1 = %d, unk2 = %.2f, unk3 = %.2f, unk4 = %.2f, unk5 = %.2f, unk6 = %.2x\n",
-	 entry_index + 1, unk1, unk2, unk3, unk4, unk5, unk6);
+  uint8_t	unk1     = read_u8(fp, js, "unk1");
+  float		width    = read_float(fp, js, "width");
+  float		height   = read_float(fp, js, "height");
+  float		x_offset = read_float(fp, js, "x_offset");
+  float		y_offset = read_float(fp, js, "y_offset");
+  uint16_t	unk6     = read_u16(fp, js, "unk6"); // Converted to a uint32_t, then loaded in xmm0 with movd.
+  printf("        child %d: unk1 = %d, width = %.2f, height = %.2f, x_offset = %.2f, y_offset = %.2f, unk6 = %.2x\n",
+	 entry_index + 1, unk1, width, height, x_offset, y_offset, unk6);
 }
 
 static void     frame_subentry1(FILE* fp, unsigned int entry_index, json_t* js)
