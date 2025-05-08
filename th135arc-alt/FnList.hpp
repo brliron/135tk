@@ -4,6 +4,7 @@
 # include <map>
 # include <vector>
 # include <filesystem>
+#include <algorithm>
 # include "OS.hpp"
 # include "Rsa.hpp"
 
