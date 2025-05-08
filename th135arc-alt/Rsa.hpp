@@ -2,11 +2,9 @@
 # define RSA_HPP_
 
 # include <fstream>
-
-extern "C"
-{
-# include "miracl.h"
-}
+#include "cryptopp/rsa.h"
+#include "cryptopp/osrng.h"
+#include "cryptopp/integer.h"
 
 class Rsa
 {
@@ -17,15 +15,15 @@ public:
   };
 
 private:
-  static bool miraclInitialized;
+  static bool initialized;
 
   std::ifstream* ifile;
   std::ofstream* ofile;
   bool publicKeyInitialized = false;
   CryptMode cryptMode;
-  big RSA_N;
-  big RSA_d;
-  big RSA_e;
+  CryptoPP::Integer RSA_N;
+  CryptoPP::Integer RSA_d;
+  CryptoPP::Integer RSA_e;
 
   void init();
   bool initRsaPublicKey(const unsigned char* crypted_sample);
@@ -47,8 +45,8 @@ public:
   bool read(void *buffer, size_t size);
   bool write(const void *buffer, size_t size);
 
-  static void initMiracl();
-  static void freeMiracl();
+  static void initCryptoPP();
+  static void freeCryptoPP();
 };
 
 #endif /* RSA_HPP_ */
