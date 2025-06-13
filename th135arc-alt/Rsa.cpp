@@ -2,11 +2,14 @@
 #include <vector>
 #include <string.h>
 #include "Rsa.hpp"
+#include <iostream>
+
+using namespace CryptoPP;
 
 static const int KEY_SIZE = 512; // in bits
 static const int KEY_BYTESIZE = KEY_SIZE / 8;
 
-bool Rsa::miraclInitialized = false;
+bool Rsa::initialized = false;
 
 static const std::vector<std::array<unsigned char, KEY_BYTESIZE> > KEYS_N = {
   // Touhou 13.5
@@ -73,17 +76,14 @@ static const unsigned char KEY_d[KEY_BYTESIZE] = {
 
 static const unsigned char PaddingBytes[32] = {0x00,0x01,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0x00};
 
-void Rsa::initMiracl()
+void Rsa::initCryptoPP()
 {
-  miracl* mip = mirsys(128,16);
-  mip->IOBASE = 16;
-  Rsa::miraclInitialized = true;
+  Rsa::initialized = true;
 }
 
-void Rsa::freeMiracl()
+void Rsa::freeCryptoPP()
 {
-  mirexit();
-  Rsa::miraclInitialized = false;
+  Rsa::initialized = false;
 }
 
 Rsa::Rsa(std::ifstream& file)
@@ -100,46 +100,43 @@ Rsa::Rsa(std::ofstream& file, Rsa::CryptMode cryptMode)
 
 void Rsa::init()
 {
-  if (!Rsa::miraclInitialized)
-    Rsa::initMiracl();
+  if (!Rsa::initialized)
+    Rsa::initCryptoPP();
 
-  RSA_e = mirvar(0x10001);
-  RSA_d = mirvar(0);
-  bytes_to_big(KEY_BYTESIZE, (const char*)KEY_d, RSA_d);
+  RSA_e = CryptoPP::Integer(0x10001);
+  RSA_d = CryptoPP::Integer();
+  RSA_N = CryptoPP::Integer();
 
-  // For encryption, take the Touhou 13.5 public key (TODO: add support for other keys).
-  // For decryption, initRsaPublicKey will be called later.
-  RSA_N = mirvar(0);
-  bytes_to_big(KEY_BYTESIZE, (const char*)KEYS_N[0].data(), RSA_N);
+  if (ifile) {
+    unsigned char crypted_sample[64];
+    ifile->read((char*)crypted_sample, 64);
+    if (!this->initRsaPublicKey(crypted_sample)) {
+      std::cerr << "No matching RSA key found.\n";
+    }
+
+    ifile->seekg(-64, std::ios::cur);
+  }
 }
 
 Rsa::~Rsa()
 {
-  mirkill(RSA_e);
-  mirkill(RSA_d);
-  mirkill(RSA_N);
 }
 
-bool Rsa::initRsaPublicKey(const unsigned char *crypted_sample)
+bool Rsa::initRsaPublicKey(const unsigned char* crypted_sample)
 {
-  // Guess the correct key for decryption
-  for (auto& it : KEYS_N)
-    {
-      mirkill(RSA_N);
-      RSA_N = mirvar(0);
-      bytes_to_big(KEY_BYTESIZE, (const char*)it.data(), RSA_N);
+  for (const auto& it : KEYS_N)
+  {
+    this->RSA_N = CryptoPP::Integer(it.data(), it.size());
 
-      unsigned char tmp[64] = {0};
-      this->DecryptBlock(crypted_sample, tmp);
-      if (this->checkPadding(tmp))
-	{
-	  this->publicKeyInitialized = true;
-	  return true;
-	}
+    unsigned char tmp[64] = {0};
+    this->DecryptBlock(crypted_sample, tmp);
+    if (this->checkPadding(tmp)) {
+      this->publicKeyInitialized = true;
+      return true;
     }
+  }
   return false;
 }
-
 /*
 ** This comment may be wrong, but that's how I understand things.
 **
@@ -186,30 +183,22 @@ bool Rsa::skipPaddingAndCopy(const unsigned char *src, unsigned char *dst, size_
   return true;
 }
 
-void Rsa::DecryptBlock(const unsigned char *src, unsigned char *dst)
+void Rsa::DecryptBlock(const unsigned char* src, unsigned char* dst)
 {
-  big sint = mirvar(0);
-  bytes_to_big(KEY_BYTESIZE, (const char*)src, sint);
-
-  big result = mirvar(0);
-  powmod(sint, RSA_e, RSA_N, result);
-  big_to_bytes(KEY_BYTESIZE, result, (char*)dst, TRUE);
-
-  mirkill(sint);
-  mirkill(result);
+  CryptoPP::Integer c(src, 64);
+  CryptoPP::Integer m = a_exp_b_mod_c(c, RSA_e, RSA_N);
+  CryptoPP::ArraySink as(dst, 64);
+  m.Encode(as, 64);
 }
 
-void Rsa::EncryptBlock(const unsigned char* src, unsigned char* dst)
-{
-  big sint = mirvar(0);
-  bytes_to_big(KEY_BYTESIZE,(const char*)src, sint);
+void Rsa::EncryptBlock(const unsigned char* src, unsigned char* dst) {
+  Integer m(src, KEY_BYTESIZE);
+  Integer c = a_exp_b_mod_c(m, RSA_e, RSA_N);
+  size_t count = c.MinEncodedSize();
+  std::vector<unsigned char> temp(KEY_BYTESIZE, 0);
 
-  big result = mirvar(0);
-  powmod(sint, RSA_d, RSA_N, result);
-  big_to_bytes(KEY_BYTESIZE, result, (char*)dst, TRUE);
-
-  mirkill(sint);
-  mirkill(result);
+  c.Encode(temp.data() + (KEY_BYTESIZE - count), count);
+  std::move(temp.begin(), temp.end(), dst);
 }
 
 bool Rsa::Decrypt6432(const unsigned char* src, unsigned char* dst, size_t dstLen)
@@ -270,7 +259,7 @@ bool Rsa::read32(void *buffer, size_t size)
 bool Rsa::read(void *buffer, size_t size)
 {
   if (!this->ifile)
-    throw std::logic_error("Calling Rsa::read on a stream in outputj mode");
+    throw std::logic_error("Calling Rsa::read on a stream in output mode");
 
   char *buffer_ = (char*)buffer;
   while (size > 32) {

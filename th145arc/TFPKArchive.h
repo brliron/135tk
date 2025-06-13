@@ -1,6 +1,5 @@
 #ifndef TFPKARCHIVE_H_
 # define TFPKARCHIVE_H_
-# include <Windows.h>
 
 #pragma pack(push)
 #pragma pack(1)

@@ -1,4 +1,6 @@
 *.pak
 *.o
+th135/
+th155/
 th135arc-alt
 th135arc-alt.exe

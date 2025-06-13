@@ -22,9 +22,9 @@ CXXFLAGS += -municode
 LDFLAGS  += -municode
 endif
 
-CXXFLAGS += -IMIRACL
+# CXXFLAGS += -I./cryptopp/
 
-LDFLAGS	+= MIRACL/miracl.a -lz -g
+LDFLAGS	+= -lcryptopp -lz -g
 
 all: $(NAME)
 
