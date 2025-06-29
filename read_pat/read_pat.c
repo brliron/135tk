@@ -2,7 +2,7 @@
 #include <string.h>
 #include "read_pat.h"
 
-#define READ_DEF(n)						\
+#define READ_U_DEF(n)						\
 uint##n##_t  read_u##n(FILE* fp, json_t *js, const char *name)	\
 {								\
   uint##n##_t num;						\
@@ -19,10 +19,32 @@ uint##n##_t  read_u##n(FILE* fp, json_t *js, const char *name)	\
   return num;							\
 }
 
-READ_DEF(8)
-READ_DEF(16)
-READ_DEF(32)
-READ_DEF(64)
+READ_U_DEF(8)
+READ_U_DEF(16)
+READ_U_DEF(32)
+READ_U_DEF(64)
+
+#define READ_I_DEF(n)						\
+int##n##_t  read_i##n(FILE* fp, json_t *js, const char *name)	\
+{								\
+  int##n##_t num;						\
+  json_t *rep = json_object_get(js, name);			\
+  if (js && rep && json_is_integer(rep)) {			\
+    num = json_integer_value(rep);				\
+    fwrite(&num, n/8, 1, fp);					\
+  }								\
+  else {							\
+    assert(fread(&num, 1, n/8, fp) == n/8);			\
+    if (js) json_object_set_new(js, name, json_integer(num));	\
+  }								\
+  								\
+  return num;							\
+}
+
+READ_I_DEF(8)
+READ_I_DEF(16)
+READ_I_DEF(32)
+READ_I_DEF(64)
 
 float	read_float(FILE* fp, json_t *js, const char *name)
 {

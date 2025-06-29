@@ -65,28 +65,103 @@ static void     projectile(FILE* fp, unsigned int entry_index, json_t* js)
 
 static void     frame(FILE* fp, unsigned int entry_index, json_t* js)
 {
-  uint16_t	unk1 = read_u16(fp, js, "unk1");
-  uint8_t	move_metadata[0x30];
-  read_bytes(fp, move_metadata, 0x30, js, "move_metadata");
-  uint64_t	unk3 = read_u64(fp, js, "unk3");
+  uint16_t	unk1        = read_u16(fp, js, "unk1");
+  int16_t	damagePoint = read_i16(fp, js, "damagePoint");
+  int16_t	hitStopE    = read_i16(fp, js, "hitStopE");
+  int16_t	hitStopP    = read_i16(fp, js, "hitStopP");
+  int16_t	guardStopE  = read_i16(fp, js, "guardStopE");
+  int16_t	guardStopP  = read_i16(fp, js, "guardStopP");
+  int16_t	firstRate   = read_i16(fp, js, "firstRate");
+  int16_t	comboRate   = read_i16(fp, js, "comboRate");
+  int16_t	addKnock    = read_i16(fp, js, "addKnock");
+  int16_t	addStan     = read_i16(fp, js, "addStan");
+  int16_t	bariaBreak  = read_i16(fp, js, "bariaBreak");
+  int16_t	guardDamage = read_i16(fp, js, "guardDamage");
+  int16_t	guardLost   = read_i16(fp, js, "guardLost");
+  int16_t	addSP       = read_i16(fp, js, "addSP");
+  int16_t	recover     = read_i16(fp, js, "recover");
+  int16_t	minRate     = read_i16(fp, js, "minRate");
+  int16_t	stopVecX    = read_i16(fp, js, "stopVecX");
+  int16_t	stopVecY    = read_i16(fp, js, "stopVecY");
+  int16_t	hitSE       = read_i16(fp, js, "hitSE");
+  int16_t	hitVecX     = read_i16(fp, js, "hitVecX");
+  int16_t	hitVecY     = read_i16(fp, js, "hitVecY");
+  int16_t	grazeKnock  = read_i16(fp, js, "grazeKnock");
+  int16_t	atkType     = read_i16(fp, js, "atkType");
+  int16_t	atkRank     = read_i16(fp, js, "atkRank");
+  int16_t	hitEffect   = read_i16(fp, js, "hitEffect");
+
+  printf("    frame %d:\n"
+         "      unk1 = %d\n"
+         "      damagePoint = %d\n"
+         "      hitStopE = %d\n"
+         "      hitStopP = %d\n"
+         "      guardStopE = %d\n"
+         "      guardStopP = %d\n"
+         "      firstRate = %d\n"
+         "      comboRate = %d\n"
+         "      addKnock = %d\n"
+         "      addStan = %d\n"
+         "      bariaBreak = %d\n"
+         "      guardDamage = %d\n"
+         "      guardLost = %d\n"
+         "      addSP = %d\n"
+         "      recover = %d\n"
+         "      minRate = %d\n"
+         "      stopVecX = %d\n"
+         "      stopVecY = %d\n"
+         "      hitSE = %d\n"
+         "      hitVecX = %d\n"
+         "      hitVecY = %d\n"
+         "      grazeKnock = %d\n"
+         "      atkType = %d\n"
+         "      atkRank = %d\n"
+         "      hitEffect = %d\n",
+    entry_index + 1,
+    unk1,
+    damagePoint,
+    hitStopE,
+    hitStopP,
+    guardStopE,
+    guardStopP,
+    firstRate,
+    comboRate,
+    addKnock,
+    addStan,
+    bariaBreak,
+    guardDamage,
+    guardLost,
+    addSP,
+    recover,
+    minRate,
+    stopVecX,
+    stopVecY,
+    hitSE,
+    hitVecX,
+    hitVecY,
+    grazeKnock,
+    atkType,
+    atkRank,
+    hitEffect
+  );
+
+
+  uint64_t	flags = read_u64(fp, js, "flags");
   uint8_t	boxcount = read_u8(fp, js, "boxcount");
 
-  printf("    frame %d: unk1 = %d,\n      move_metadata = 0x", entry_index + 1, unk1);
-  unsigned int	i;
-  for (i = 0; i < 0x30; i++)
-    printf("%.2x", move_metadata[i]);
 #if __linux__
-  printf("\n      unk3 = 0x%.16lx, boxcount = %d\n", unk3, boxcount);
+  printf("      flags = 0x%.16lx\n", flags);
 #else
-  printf("\n      unk3 = 0x%.16llx, boxcount = %d\n", unk3, boxcount);
+  printf("      flags = 0x%.16llx\n", flags);
 #endif
+  printf("      boxcount = %d\n", boxcount);
 
-  box_data(fp, "collisionbox_data", js_enter(js, idx_to_str("collisionbox_data")));
-  box_data(fp, "hurtbox_data",      js_enter(js, idx_to_str("hurtbox_data")));
-  box_data(fp, "hitbox_data",       js_enter(js, idx_to_str("hitbox_data")));
+  box_data(fp, "collisionbox_data", js_enter(js, "collisionbox_data"));
+  box_data(fp, "hurtbox_data",      js_enter(js, "hurtbox_data"));
+  box_data(fp, "hitbox_data",       js_enter(js, "hitbox_data"));
 
   uint8_t	nb_projectiles = read_u8(fp, js, "nb_projectiles");
-  for (i = 0; i < nb_projectiles; i++)
+  for (int i = 0; i < nb_projectiles; i++)
     projectile(fp, i, js_enter(js, idx_to_str("projectile_", i + 1)));
 }
 
