@@ -42,20 +42,20 @@ static void     frame_subentry1_child(FILE* fp, unsigned int entry_index, json_t
 	 entry_index + 1, unk1, width, height, x_offset, y_offset, unk6);
 }
 
-static void     frame_subentry1(FILE* fp, unsigned int entry_index, json_t* js)
+static void     box_data(FILE* fp, const char *name, json_t* js)
 {
   uint8_t	nb_child = read_u8(fp, js, "nb_child");
-  printf("      subentry1-%d: %d childs\n", entry_index, nb_child);
+  printf("      %s: %d childs\n", name, nb_child);
   unsigned int	i;
   for (i = 0; i < nb_child; i++)
     frame_subentry1_child(fp, i, js_enter(js, idx_to_str("child_", i + 1)));
 }
 
-static void     frame_subentry2(FILE* fp, unsigned int entry_index, json_t* js)
+static void     projectile(FILE* fp, unsigned int entry_index, json_t* js)
 {
   uint64_t	value = read_u64(fp, js, "value");
 
-  printf("        frame_subentry2 %d: ", entry_index + 1);
+  printf("        projectile %d: ", entry_index + 1);
 #if __linux__
   printf("value = 0x%.16lx\n", value);
 #else
@@ -66,27 +66,28 @@ static void     frame_subentry2(FILE* fp, unsigned int entry_index, json_t* js)
 static void     frame(FILE* fp, unsigned int entry_index, json_t* js)
 {
   uint16_t	unk1 = read_u16(fp, js, "unk1");
-  uint8_t	unk2[0x30];
-  read_bytes(fp, unk2, 0x30, js, "unk2");
+  uint8_t	move_metadata[0x30];
+  read_bytes(fp, move_metadata, 0x30, js, "move_metadata");
   uint64_t	unk3 = read_u64(fp, js, "unk3");
-  uint8_t	unk4 = read_u8(fp, js, "unk4");
+  uint8_t	boxcount = read_u8(fp, js, "boxcount");
 
-  printf("    frame %d: unk1 = %d,\n      unk2 = 0x", entry_index + 1, unk1);
+  printf("    frame %d: unk1 = %d,\n      move_metadata = 0x", entry_index + 1, unk1);
   unsigned int	i;
   for (i = 0; i < 0x30; i++)
-    printf("%.2x", unk2[i]);
+    printf("%.2x", move_metadata[i]);
 #if __linux__
-  printf("\n      unk3 = 0x%.16lx, unk4 = %d\n", unk3, unk4);
+  printf("\n      unk3 = 0x%.16lx, boxcount = %d\n", unk3, boxcount);
 #else
-  printf("\n      unk3 = 0x%.16llx, unk4 = %d\n", unk3, unk4);
+  printf("\n      unk3 = 0x%.16llx, boxcount = %d\n", unk3, boxcount);
 #endif
 
-  for (i = 0; i < 3; i++)
-    frame_subentry1(fp, i, js_enter(js, idx_to_str("frame_subentry1_", i + 1)));
+  box_data(fp, "collisionbox_data", js_enter(js, idx_to_str("collisionbox_data")));
+  box_data(fp, "hurtbox_data",      js_enter(js, idx_to_str("hurtbox_data")));
+  box_data(fp, "hitbox_data",       js_enter(js, idx_to_str("hitbox_data")));
 
-  uint8_t	nb_frame_subentry2 = read_u8(fp, js, "nb_frame_subentry2");
-  for (i = 0; i < nb_frame_subentry2; i++)
-    frame_subentry2(fp, i, js_enter(js, idx_to_str("frame_subentry2_", i + 1)));
+  uint8_t	nb_projectiles = read_u8(fp, js, "nb_projectiles");
+  for (i = 0; i < nb_projectiles; i++)
+    projectile(fp, i, js_enter(js, idx_to_str("projectile_", i + 1)));
 }
 
 static void	matrix(FILE* fp, const char *padding, json_t *js)
@@ -388,10 +389,10 @@ static void	layer(FILE* fp, unsigned int entry_index, json_t *js)
 
 static void	take(FILE* fp, unsigned int entry_index, json_t *js)
 {
-  uint32_t	unk1 = read_u32(fp, js, "unk1");
+  uint32_t	motion_id = read_u32(fp, js, "motion_id");
   uint32_t	unk2 = read_u32(fp, js, "unk2");
   uint8_t	is_child = read_u8(fp, js, "is_child");
-  printf("  take %d: unk1 = 0x%x, unk2 = 0x%x, is_child = %d\n", entry_index + 1, unk1, unk2, is_child);
+  printf("  take %d: motion_id = 0x%x, unk2 = 0x%x, is_child = %d\n", entry_index + 1, motion_id, unk2, is_child);
 
   uint32_t	nb_frame = read_u32(fp, js, "nb_frame");
   unsigned int	i = 0;
