@@ -464,7 +464,7 @@ static void	layer(FILE* fp, unsigned int entry_index, json_t *js)
 
 static void	take(FILE* fp, unsigned int entry_index, json_t *js)
 {
-  uint32_t	motion_id = read_u32(fp, js, "motion_id");
+  int32_t	motion_id = read_i32(fp, js, "motion_id");
   uint32_t	unk2 = read_u32(fp, js, "unk2");
   uint8_t	is_child = read_u8(fp, js, "is_child");
   printf("  take %d: motion_id = 0x%x, unk2 = 0x%x, is_child = %d\n", entry_index + 1, motion_id, unk2, is_child);
